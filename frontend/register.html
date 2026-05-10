@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kayıt Ol</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Sahaf</h1>
+        <nav>
+            <a href="index.html">Ana Sayfa</a>
+            <a href="login.html">Giriş Yap</a>
+        </nav>
+    </header>
+    <main>
+        <h2>Kayıt Ol</h2>
+        <div id="register-error" class="error"></div>
+        <label>Ad Soyad:<br>
+            <input type="text" id="reg-name" required>
+        </label><br>
+        <label>E-posta:<br>
+            <input type="email" id="reg-email" required>
+        </label><br>
+        <label>Şifre:<br>
+            <input type="password" id="reg-password" required>
+        </label><br>
+        <button id="register-button">Kayıt Ol</button>
+    </main>
+    <script src="assets/js/main.js"></script>
+    <script>
+        document.getElementById('register-button').addEventListener('click', register);
+    </script>
+</body>
+</html>

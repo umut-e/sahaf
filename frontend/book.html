@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitap Detayı</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Sahaf</h1>
+        <nav>
+            <a href="index.html">Ana Sayfa</a>
+            <a href="cart.html">Sepet</a>
+            <a href="profile.html" id="profile-link">Profil</a>
+            <a href="login.html" id="login-link">Giriş Yap</a>
+            <button id="toggle-theme">🌙</button>
+        </nav>
+    </header>
+    <main>
+        <div id="book-detail">
+            <!-- Book details will go here -->
+        </div>
+        <section id="reviews-section">
+            <h2>Yorumlar</h2>
+            <div id="reviews-list"></div>
+            <div id="review-form-container">
+                <h3>Yorum Ekle</h3>
+                <div id="review-error" class="error"></div>
+                <label>Puan (1-5): <input type="number" id="review-rating" min="1" max="5"></label>
+                <textarea id="review-comment" placeholder="Yorumunuz..."></textarea>
+                <button id="submit-review">Gönder</button>
+            </div>
+        </section>
+    </main>
+    <script src="assets/js/main.js?v=3"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadBookDetail();
+            document.getElementById('submit-review').addEventListener('click', submitReview);
+            document.getElementById('toggle-theme').addEventListener('click', toggleTheme);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sahaf - İkinci El Kitaplar</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Sahaf</h1>
+        <nav>
+            <a href="index.html">Ana Sayfa</a>
+            <a href="cart.html">Sepet</a>
+            <a href="profile.html" id="profile-link">Profil</a>
+            <a href="login.html" id="login-link">Giriş Yap</a>
+            <button id="toggle-theme">🌙</button>
+        </nav>
+    </header>
+    <main>
+        <section id="search-section">
+            <input type="text" id="search-input" placeholder="Kitap veya yazar ara...">
+            <select id="category-filter">
+                <option value="">Kategori</option>
+            </select>
+            <button id="search-button">Ara</button>
+        </section>
+        <section id="books-list">
+            <!-- Books will be injected here -->
+        </section>
+        <div id="pagination">
+            <button id="prev-page">Önceki</button>
+            <span id="page-info">1</span>
+            <button id="next-page">Sonraki</button>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2026 Sahaf</p>
+    </footer>
+    <script src="assets/js/main.js?v=3"></script>
+    <script>
+        // Initialize the page: load categories and books
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCategories();
+            loadBooks();
+            // theme toggle
+            document.getElementById('toggle-theme').addEventListener('click', toggleTheme);
+            document.getElementById('search-button').addEventListener('click', () => {
+                window.currentPage = 1;
+                loadBooks();
+            });
+            document.getElementById('prev-page').addEventListener('click', () => {
+                if (window.currentPage > 1) {
+                    window.currentPage--;
+                    loadBooks();
+                }
+            });
+            document.getElementById('next-page').addEventListener('click', () => {
+                if (window.currentPage < window.totalPages) {
+                    window.currentPage++;
+                    loadBooks();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

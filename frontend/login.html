@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş Yap</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Sahaf</h1>
+        <nav>
+            <a href="index.html">Ana Sayfa</a>
+            <a href="register.html">Kayıt Ol</a>
+        </nav>
+    </header>
+    <main>
+        <h2>Giriş Yap</h2>
+        <div id="login-error" class="error"></div>
+        <label>E-posta:<br>
+            <input type="email" id="login-email" required>
+        </label><br>
+        <label>Şifre:<br>
+            <input type="password" id="login-password" required>
+        </label><br>
+        <button id="login-button">Giriş</button>
+    </main>
+    <script src="assets/js/main.js"></script>
+    <script>
+        document.getElementById('login-button').addEventListener('click', login);
+    </script>
+</body>
+</html>
