@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Sipariş Yönetimi</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Admin Paneli</h1>
+        <nav>
+            <a href="../index.html">Ana Sayfaya Dön</a>
+            <a href="books.html">Kitaplar</a>
+            <a href="users.html">Kullanıcılar</a>
+            <a href="orders.html">Siparişler</a>
+        </nav>
+    </header>
+    <main>
+        <h2>Siparişler</h2>
+        <div id="admin-orders-list"></div>
+    </main>
+    <script src="../assets/js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAdminOrders();
+        });
+    </script>
+</body>
+</html>

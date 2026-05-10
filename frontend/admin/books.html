@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Kitap Yönetimi</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Admin Paneli</h1>
+        <nav>
+            <a href="../index.html">Ana Sayfaya Dön</a>
+            <a href="books.html">Kitaplar</a>
+            <a href="users.html">Kullanıcılar</a>
+            <a href="orders.html">Siparişler</a>
+        </nav>
+    </header>
+    <main>
+        <h2>Kitaplar</h2>
+        <div id="admin-books-list"></div>
+        <h3>Yeni Kitap Ekle</h3>
+        <div id="admin-book-error" class="error"></div>
+        <form id="add-book-form" enctype="multipart/form-data">
+            <label>Başlık:<br><input type="text" name="title" required></label><br>
+            <label>Yazar:<br><input type="text" name="author" required></label><br>
+            <label>Fiyat:<br><input type="number" step="0.01" name="price" required></label><br>
+            <label>Açıklama:<br><textarea name="description"></textarea></label><br>
+            <label>Durum:<br>
+                <select name="condition">
+                    <option value="new">Yeni</option>
+                    <option value="good">İyi</option>
+                    <option value="fair">Orta</option>
+                    <option value="poor">Kötü</option>
+                </select>
+            </label><br>
+            <label>Kategori:<br>
+                <select name="category_id" id="add-book-category">
+                    <option value="">Seçiniz...</option>
+                    <!-- Categories will be dynamically injected here -->
+                </select>
+            </label><br>
+            <label>Fotoğraflar:<br><input type="file" name="images[]" multiple></label><br>
+            <button type="submit">Ekle</button>
+        </form>
+
+        <div id="edit-book-modal" style="display:none; border:1px solid #ccc; padding:15px; margin-top:20px;">
+            <h3>Kitap Güncelle</h3>
+            <div id="edit-book-error" class="error"></div>
+            <form id="edit-book-form">
+                <input type="hidden" name="id" id="edit-book-id">
+                <label>Başlık:<br><input type="text" name="title" id="edit-book-title" required></label><br>
+                <label>Yazar:<br><input type="text" name="author" id="edit-book-author" required></label><br>
+                <label>Fiyat:<br><input type="number" step="0.01" name="price" id="edit-book-price" required></label><br>
+                <label>Açıklama:<br><textarea name="description" id="edit-book-desc"></textarea></label><br>
+                <label>Durum:<br>
+                    <select name="condition" id="edit-book-condition">
+                        <option value="new">Yeni</option>
+                        <option value="good">İyi</option>
+                        <option value="fair">Orta</option>
+                        <option value="poor">Kötü</option>
+                    </select>
+                </label><br>
+                <label>Kategori:<br>
+                    <select name="category_id" id="edit-book-cat">
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </label><br>
+                <button type="submit">Güncelle</button>
+                <button type="button" id="cancel-edit-book">İptal</button>
+            </form>
+        </div>
+    </main>
+    <script src="../assets/js/main.js?v=2"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCategories();
+            loadAdminBooks();
+            document.getElementById('add-book-form').addEventListener('submit', addBook);
+            const editForm = document.getElementById('edit-book-form');
+            if(editForm) {
+                editForm.addEventListener('submit', updateBook);
+            }
+            const cancelEdit = document.getElementById('cancel-edit-book');
+            if(cancelEdit) {
+                cancelEdit.addEventListener('click', () => {
+                    document.getElementById('edit-book-modal').style.display = 'none';
+                });
+            }
+        });
+    </script>
+</body>
+</html>
