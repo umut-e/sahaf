@@ -19,4 +19,3 @@ Siteye buradan ulaşabilirsiniz: [https://umutefe.duckdns.org](https://umutefe.d
 - **Sunucu:** Nginx / Linux
 
 ---
-*Bu proje Yapay Zeka desteği ile geliştirilmiştir.*
