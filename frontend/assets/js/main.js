@@ -286,88 +286,102 @@ async function loadReviews(bookId, book) {
 /* ===================== SEPET ===================== */
 async function initCart() {
   const root = document.getElementById('cart-root');
-  async function render() {
-    let items;
+  let me = {};
+  if (isLoggedIn()) { try { me = await api('/users/' + currentUser().id); } catch {} }
+
+  let items = [];
+  try { items = await store.getCart(); } catch {}
+  if (!items.length) {
+    root.innerHTML = emptyState('Sepetiniz boş', 'Beğendiğiniz kitapları sepete ekleyin.', '<a class="btn btn-primary" href="/index.html">Kitaplara göz at</a>', '🛒');
+    return;
+  }
+
+  root.innerHTML = `
+    <div class="cart-layout">
+      <div>
+        <div id="cart-items"></div>
+        ${isLoggedIn() ? `
+          <div class="panel" style="margin-top:1.25rem">
+            <h3 style="margin-top:0">Teslimat Bilgileri</h3>
+            <p class="muted small" style="margin-top:-.35rem">Profilinizdeki bilgiler otomatik dolduruldu; düzenleyebilirsiniz.</p>
+            <div class="field"><label>Ad Soyad</label><input id="co-name" value="${esc(me.name || currentUser().name || '')}"></div>
+            <div class="field"><label>Telefon</label><input id="co-phone" value="${esc(me.phone_number || '')}" placeholder="+90..."></div>
+            <div class="field" style="display:flex;gap:.75rem">
+              <div style="flex:1"><label>İl</label><select id="co-prov"></select></div>
+              <div style="flex:1"><label>İlçe</label><select id="co-dist"></select></div>
+            </div>
+            <div class="field"><label>Açık Adres</label><textarea id="co-addr" placeholder="Mahalle, sokak, no...">${esc(me.address || '')}</textarea></div>
+          </div>` : ''}
+      </div>
+      <aside class="cart-summary">
+        <h3 style="margin-top:0">Özet</h3>
+        <div class="summary-row"><span>Ara toplam</span><span id="sum-sub"></span></div>
+        <div class="summary-row muted"><span>Kargo</span><span>Ücretsiz</span></div>
+        <div class="summary-row summary-total"><span>Toplam</span><span id="sum-total"></span></div>
+        <div class="field-error" id="co-err"></div>
+        <button class="btn btn-primary btn-block" id="checkout" style="margin-top:1rem">${isLoggedIn() ? 'Siparişi Tamamla' : 'Giriş Yap ve Sipariş Ver'}</button>
+      </aside>
+    </div>`;
+
+  // il/ilçe kademeli açılır menüler (girişliyse)
+  if (isLoggedIn()) {
+    const prov = document.getElementById('co-prov');
+    const dist = document.getElementById('co-dist');
+    fillProvinceSelect(prov, me.province || '');
+    fillDistrictSelect(dist, me.province || '', me.district || '');
+    prov.addEventListener('change', () => fillDistrictSelect(dist, prov.value));
+  }
+
+  // Ürün listesini formdan bağımsız render et (miktar değişince form sıfırlanmasın)
+  function renderItems() {
+    const box = document.getElementById('cart-items');
+    const total = items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
+    box.innerHTML = items.map((i) => `
+      <div class="line-item" data-book="${i.book_id}">
+        ${i.primary_image ? `<img src="${imageUrl(i.primary_image)}" alt="">` : '<div class="line-thumb"></div>'}
+        <div class="line-info">
+          <h4>${esc(i.title)}</h4>
+          <p class="muted small">${esc(i.author || '')}</p>
+          <span class="price">${formatPrice(i.price)}</span>
+        </div>
+        <div class="qty-control">
+          <button data-act="dec" aria-label="Azalt">−</button><span>${i.quantity}</span><button data-act="inc" aria-label="Artır">+</button>
+        </div>
+        <button class="icon-btn" data-act="del" title="Kaldır" aria-label="Kaldır">🗑️</button>
+      </div>`).join('');
+    document.getElementById('sum-sub').textContent = formatPrice(total);
+    document.getElementById('sum-total').textContent = formatPrice(total);
+
+    box.querySelectorAll('.line-item').forEach((row) => {
+      const item = items.find((x) => String(x.book_id) === row.dataset.book);
+      row.querySelector('[data-act="inc"]').addEventListener('click', () => changeQty(item, item.quantity + 1));
+      row.querySelector('[data-act="dec"]').addEventListener('click', () => { if (item.quantity > 1) changeQty(item, item.quantity - 1); });
+      row.querySelector('[data-act="del"]').addEventListener('click', () => removeItem(item));
+    });
+  }
+
+  async function refresh() {
     try { items = await store.getCart(); } catch { items = []; }
     if (!items.length) {
       root.innerHTML = emptyState('Sepetiniz boş', 'Beğendiğiniz kitapları sepete ekleyin.', '<a class="btn btn-primary" href="/index.html">Kitaplara göz at</a>', '🛒');
       return;
     }
-    const total = items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-    root.innerHTML = `
-      <div class="cart-layout">
-        <div id="cart-items">
-          ${items.map((i) => `
-            <div class="line-item" data-book="${i.book_id}">
-              ${i.primary_image ? `<img src="${imageUrl(i.primary_image)}" alt="">` : '<div class="line-thumb"></div>'}
-              <div class="line-info">
-                <h4>${esc(i.title)}</h4>
-                <p class="muted small">${esc(i.author || '')}</p>
-                <span class="price">${formatPrice(i.price)}</span>
-              </div>
-              <div class="qty-control">
-                <button data-act="dec" aria-label="Azalt">−</button><span>${i.quantity}</span><button data-act="inc" aria-label="Artır">+</button>
-              </div>
-              <button class="icon-btn" data-act="del" title="Kaldır" aria-label="Kaldır">🗑️</button>
-            </div>`).join('')}
-        </div>
-        <aside class="cart-summary">
-          <h3 style="margin-top:0">Özet</h3>
-          <div class="summary-row"><span>Ara toplam</span><span>${formatPrice(total)}</span></div>
-          <div class="summary-row muted"><span>Kargo</span><span>Ücretsiz</span></div>
-          <div class="summary-row summary-total"><span>Toplam</span><span>${formatPrice(total)}</span></div>
-          <button class="btn btn-primary btn-block" id="checkout" style="margin-top:1rem">Siparişi Tamamla</button>
-        </aside>
-      </div>`;
-
-    root.querySelectorAll('.line-item').forEach((row) => {
-      const item = items.find((x) => String(x.book_id) === row.dataset.book);
-      row.querySelector('[data-act="inc"]').addEventListener('click', async () => { await store.setCartQty(item, item.quantity + 1); render(); });
-      row.querySelector('[data-act="dec"]').addEventListener('click', async () => { if (item.quantity > 1) { await store.setCartQty(item, item.quantity - 1); render(); } });
-      row.querySelector('[data-act="del"]').addEventListener('click', async () => { await store.removeFromCart(item); toast('Üründen çıkarıldı.'); render(); });
-    });
-    document.getElementById('checkout').addEventListener('click', () => checkout(total));
+    renderItems();
   }
-  render();
-}
+  async function changeQty(item, q) { await store.setCartQty(item, q); await refresh(); }
+  async function removeItem(item) { await store.removeFromCart(item); toast('Üründen çıkarıldı.'); await refresh(); }
 
-async function checkout(total) {
-  if (!isLoggedIn()) {
-    if (await confirmModal('Sipariş vermek için giriş yapmalısınız. Giriş sayfasına gidilsin mi?')) {
-      location.href = '/login.html?next=/cart.html';
-    }
-    return;
-  }
-  let me = {};
-  try { me = await api('/users/' + currentUser().id); } catch {}
+  renderItems();
 
-  const { el, close } = openModal(`
-    <h2 style="margin-top:0">Teslimat Bilgileri</h2>
-    <p class="muted small" style="margin-top:-.5rem">Bilgileriniz profilinizden dolduruldu, düzenleyebilirsiniz.</p>
-    <div class="field"><label>Ad Soyad</label><input id="co-name" value="${esc(me.name || currentUser().name || '')}" required></div>
-    <div class="field"><label>Telefon</label><input id="co-phone" value="${esc(me.phone_number || '')}" placeholder="+90..." required></div>
-    <div class="field" style="display:flex;gap:.75rem">
-      <div style="flex:1"><label>İl</label><select id="co-prov"></select></div>
-      <div style="flex:1"><label>İlçe</label><select id="co-dist"></select></div>
-    </div>
-    <div class="field"><label>Açık Adres</label><textarea id="co-addr" placeholder="Mahalle, sokak, no...">${esc(me.address || '')}</textarea></div>
-    <div class="summary-row summary-total"><span>Toplam</span><span>${formatPrice(total)}</span></div>
-    <div class="field-error" id="co-err"></div>
-    <button class="btn btn-primary btn-block" id="place" style="margin-top:.5rem">Siparişi Onayla</button>`, { wide: true });
-
-  const prov = el.querySelector('#co-prov');
-  const dist = el.querySelector('#co-dist');
-  fillProvinceSelect(prov, me.province || '');
-  fillDistrictSelect(dist, me.province || '', me.district || '');
-  prov.addEventListener('change', () => fillDistrictSelect(dist, prov.value));
-
-  el.querySelector('#place').addEventListener('click', async () => {
-    const name = el.querySelector('#co-name').value.trim();
-    const phone = el.querySelector('#co-phone').value.trim();
-    const province = prov.value;
-    const district = dist.value;
-    const addr = el.querySelector('#co-addr').value.trim();
-    const err = el.querySelector('#co-err');
+  document.getElementById('checkout').addEventListener('click', async () => {
+    if (!isLoggedIn()) { location.href = '/login.html?next=/cart.html'; return; }
+    const name = document.getElementById('co-name').value.trim();
+    const phone = document.getElementById('co-phone').value.trim();
+    const province = document.getElementById('co-prov').value;
+    const district = document.getElementById('co-dist').value;
+    const addr = document.getElementById('co-addr').value.trim();
+    const err = document.getElementById('co-err');
+    err.textContent = '';
     if (!name || !phone || !province || !district || !addr) {
       err.textContent = 'Lütfen tüm teslimat alanlarını doldurun.';
       return;
@@ -378,7 +392,6 @@ async function checkout(total) {
       const res = await api('/orders', { method: 'POST', body: { address: fullAddress } });
       store.clearLocalCart();
       await store.refreshCounts();
-      close();
       toast('Siparişiniz alındı!', 'success');
       setTimeout(() => (location.href = '/order.html?id=' + res.order_id), 700);
     } catch (e) { err.textContent = e.message; }
