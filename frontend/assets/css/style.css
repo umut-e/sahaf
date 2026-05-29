@@ -249,6 +249,8 @@ textarea { resize: vertical; min-height: 90px; }
 .book-meta { display: flex; align-items: center; gap: .4rem; margin-bottom: .6rem; font-size: .8rem; flex-wrap: wrap; }
 .tag { padding: .15rem .55rem; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--muted); font-size: .72rem; }
 .book-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.admin-card-actions { display: flex; gap: .4rem; margin-top: .6rem; padding-top: .6rem; border-top: 1px dashed var(--border); }
+.admin-card-actions .btn { flex: 1; }
 .price { font-weight: 700; font-size: 1.1rem; color: var(--primary); }
 
 /* ---------------- yıldızlar ---------------- */

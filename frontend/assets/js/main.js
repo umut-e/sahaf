@@ -1,10 +1,11 @@
 // Mağaza sayfaları — sayfa yönlendirici. body[data-page] değerine göre ilgili
 // init fonksiyonu çalışır.
 
-import { api, currentUser, isLoggedIn, saveSession, imageUrl } from './api.js';
+import { api, currentUser, isLoggedIn, isAdmin, saveSession, imageUrl } from './api.js';
 import * as store from './store.js';
+import { openBookForm, confirmDeleteBook } from './book-form.js';
 import {
-  mountChrome, openModal, toast, confirmModal, esc, formatPrice, formatDate, qs,
+  mountChrome, toast, confirmModal, esc, formatPrice, formatDate, qs,
   starsHtml, skeletonCards, emptyState, lightbox, CONDITIONS, STATUSES, refreshNotifBadge,
 } from './ui.js';
 import { fillProvinceSelect, fillDistrictSelect } from './tr-cities.js';
@@ -47,12 +48,16 @@ function bookCard(b) {
           <span class="price">${formatPrice(b.price)}</span>
           <button class="btn btn-primary btn-sm" data-act="add" ${out ? 'disabled' : ''}>${out ? 'Tükendi' : 'Sepete'}</button>
         </div>
+        ${isAdmin() ? `<div class="admin-card-actions">
+          <button class="btn btn-ghost btn-sm" data-act="edit">✏️ Düzenle</button>
+          <button class="btn btn-danger btn-sm" data-act="del">Sil</button>
+        </div>` : ''}
       </div>
     </article>`;
 }
 
 /** Bir grid içindeki kartlara olay bağlar (delegasyon). */
-function wireGrid(grid, getBooks, { onFavRemoved } = {}) {
+function wireGrid(grid, getBooks, { onFavRemoved, onAdminChange } = {}) {
   grid.addEventListener('click', async (e) => {
     const card = e.target.closest('.book-card');
     if (!card) return;
@@ -69,6 +74,12 @@ function wireGrid(grid, getBooks, { onFavRemoved } = {}) {
       e.stopPropagation();
       await store.addToCart(book);
       toast('Sepete eklendi.', 'success');
+    } else if (act === 'edit') {
+      e.stopPropagation();
+      openBookForm(book, onAdminChange);
+    } else if (act === 'del') {
+      e.stopPropagation();
+      confirmDeleteBook(book, onAdminChange);
     } else {
       location.href = `/book.html?id=${book.id}`;
     }
@@ -96,7 +107,7 @@ async function initHome() {
   if (condEl) condEl.value = state.condition;
 
   let books = [];
-  wireGrid(grid, () => books);
+  wireGrid(grid, () => books, { onAdminChange: () => load() });
 
   // kategoriler
   try {
@@ -194,6 +205,7 @@ async function initBook() {
         <div class="detail-actions">
           <button class="btn btn-primary" id="add-cart" ${out ? 'disabled' : ''}>${out ? 'Tükendi' : 'Sepete Ekle'}</button>
           <button class="btn btn-ghost" id="fav-btn">${store.isFav(book.id) ? '♥ Favoride' : '♡ Favorile'}</button>
+          ${isAdmin() ? '<button class="btn btn-ghost" id="admin-edit">✏️ Düzenle</button><button class="btn btn-danger" id="admin-del">Sil</button>' : ''}
         </div>
       </div>
     </div>
@@ -218,6 +230,8 @@ async function initBook() {
     e.target.textContent = now ? '♥ Favoride' : '♡ Favorile';
     toast(now ? 'Favorilere eklendi.' : 'Favorilerden çıkarıldı.', 'success');
   });
+  document.getElementById('admin-edit')?.addEventListener('click', () => openBookForm(book, () => location.reload()));
+  document.getElementById('admin-del')?.addEventListener('click', () => confirmDeleteBook(book, () => { location.href = '/index.html'; }));
 
   loadReviews(id, book);
 }
@@ -413,6 +427,7 @@ async function initFavorites() {
   grid.innerHTML = books.map(bookCard).join('');
   wireGrid(grid, () => books, {
     onFavRemoved: (card) => { card.remove(); if (!grid.querySelector('.book-card')) initFavorites(); },
+    onAdminChange: () => initFavorites(),
   });
 }
 

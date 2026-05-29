@@ -31,7 +31,9 @@ class Database {
                 [
                     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES   => false,
+                    // Aynı isimli placeholder'ın birden çok kez kullanılabilmesi için
+                    // (ör. arama: title LIKE :s OR author LIKE :s) emülasyon açık.
+                    PDO::ATTR_EMULATE_PREPARES   => true,
                 ]
             );
         } catch (PDOException $e) {

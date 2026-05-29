@@ -3,11 +3,10 @@
 import { api, isAdmin, isLoggedIn, imageUrl } from './api.js';
 import {
   mountChrome, openModal, toast, confirmModal, esc, formatPrice, formatDate,
-  skeletonCards, emptyState, STATUSES, CONDITIONS,
+  skeletonCards, emptyState, STATUSES,
 } from './ui.js';
 import { fillProvinceSelect, fillDistrictSelect } from './tr-cities.js';
-
-let categoriesCache = [];
+import { openBookForm, confirmDeleteBook } from './book-form.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   mountChrome();
@@ -74,23 +73,33 @@ async function initDashboard() {
 }
 
 /* ===================== KİTAPLAR ===================== */
-async function loadCategories() {
-  if (!categoriesCache.length) {
-    try { categoriesCache = await api('/categories'); } catch { categoriesCache = []; }
-  }
-  return categoriesCache;
-}
-
 async function initBooks() {
   const root = document.getElementById('admin-books-root');
-  document.getElementById('add-book-btn')?.addEventListener('click', () => bookForm());
+  const searchEl = document.getElementById('book-search');
+  const catEl = document.getElementById('book-category');
+
+  document.getElementById('add-book-btn')?.addEventListener('click', () => openBookForm(null, render));
+
+  // Kategori filtresini doldur
+  try {
+    const cats = await api('/categories');
+    if (catEl) {
+      catEl.innerHTML = '<option value="">Tüm kategoriler</option>' +
+        cats.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+    }
+  } catch {}
 
   async function render() {
     root.innerHTML = skeletonCards(4);
+    const p = new URLSearchParams({ limit: 100 });
+    if (searchEl?.value) p.set('search', searchEl.value.trim());
+    if (catEl?.value) p.set('category_id', catEl.value);
     let res;
-    try { res = await api('/books?limit=50'); } catch { root.innerHTML = emptyState('Kitaplar yüklenemedi'); return; }
+    try { res = await api('/books?' + p); } catch { root.innerHTML = emptyState('Kitaplar yüklenemedi'); return; }
     const books = res.data;
+    if (!books.length) { root.innerHTML = emptyState('Kitap bulunamadı', 'Arama veya filtreyi değiştirmeyi deneyin.', '', '🔍'); return; }
     root.innerHTML = `
+      <p class="muted small" style="margin:.25rem 0 .75rem">${res.total} kitap</p>
       <div class="table-wrap">
         <table class="data">
           <thead><tr><th></th><th>Başlık</th><th>Yazar</th><th>Kategori</th><th>Fiyat</th><th>Stok</th><th>İşlem</th></tr></thead>
@@ -111,55 +120,13 @@ async function initBooks() {
           </tbody>
         </table>
       </div>`;
-    root.querySelectorAll('[data-edit]').forEach((btn) => btn.addEventListener('click', () => bookForm(books.find((x) => x.id == btn.dataset.edit))));
-    root.querySelectorAll('[data-del]').forEach((btn) => btn.addEventListener('click', async () => {
-      if (!(await confirmModal('Bu kitabı silmek istediğinize emin misiniz?', { danger: true, okText: 'Sil' }))) return;
-      try { await api('/books/' + btn.dataset.del, { method: 'DELETE' }); toast('Kitap silindi.'); render(); }
-      catch (e) { toast(e.message, 'error'); }
-    }));
+    root.querySelectorAll('[data-edit]').forEach((btn) => btn.addEventListener('click', () => openBookForm(books.find((x) => x.id == btn.dataset.edit), render)));
+    root.querySelectorAll('[data-del]').forEach((btn) => btn.addEventListener('click', () => confirmDeleteBook(books.find((x) => x.id == btn.dataset.del), render)));
   }
 
-  async function bookForm(book = null) {
-    const cats = await loadCategories();
-    const { el, close } = openModal(`
-      <h2 style="margin-top:0">${book ? 'Kitabı Düzenle' : 'Yeni Kitap Ekle'}</h2>
-      <form id="bf">
-        <div class="field"><label>Başlık</label><input name="title" value="${esc(book?.title || '')}" required></div>
-        <div class="field"><label>Yazar</label><input name="author" value="${esc(book?.author || '')}" required></div>
-        <div class="field" style="display:flex;gap:.75rem">
-          <div style="flex:1"><label>Fiyat (₺)</label><input name="price" type="number" step="0.01" value="${esc(book?.price || '')}" required></div>
-          <div style="flex:1"><label>Stok</label><input name="stock" type="number" value="${esc(book?.stock ?? 0)}" required></div>
-        </div>
-        <div class="field" style="display:flex;gap:.75rem">
-          <div style="flex:1"><label>Durum</label><select name="condition">${Object.entries(CONDITIONS).map(([k, v]) => `<option value="${k}" ${book?.condition === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
-          <div style="flex:1"><label>Kategori</label><select name="category_id"><option value="">—</option>${cats.map((c) => `<option value="${c.id}" ${book?.category_id == c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
-        </div>
-        <div class="field"><label>Açıklama</label><textarea name="description">${esc(book?.description || '')}</textarea></div>
-        <div class="field"><label>Görseller ${book ? '(yeni yüklenirse mevcutların yerini alır)' : ''}</label><input type="file" name="images" accept="image/*" multiple></div>
-        <div class="field-error" id="bf-err"></div>
-        <button class="btn btn-primary btn-block" type="submit">${book ? 'Kaydet' : 'Ekle'}</button>
-      </form>`, { wide: true });
-
-    el.querySelector('#bf').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const fd = new FormData(e.target);
-      const files = fd.getAll('images').filter((f) => f.size);
-      fd.delete('images');
-      files.forEach((f) => fd.append('images[]', f));
-      try {
-        if (book) {
-          fd.append('_method', 'PUT');
-          await api('/books/' + book.id, { method: 'POST', form: fd });
-          toast('Kitap güncellendi.', 'success');
-        } else {
-          await api('/books', { method: 'POST', form: fd });
-          toast('Kitap eklendi.', 'success');
-        }
-        close(); render();
-      } catch (err) { el.querySelector('#bf-err').textContent = err.message; }
-    });
-  }
-
+  let t;
+  searchEl?.addEventListener('input', () => { clearTimeout(t); t = setTimeout(render, 350); });
+  catEl?.addEventListener('change', render);
   render();
 }
 
@@ -170,7 +137,7 @@ async function initCategories() {
 
   async function render() {
     let cats;
-    try { cats = await api('/categories'); categoriesCache = cats; } catch { root.innerHTML = emptyState('Yüklenemedi'); return; }
+    try { cats = await api('/categories'); } catch { root.innerHTML = emptyState('Yüklenemedi'); return; }
     root.innerHTML = `
       <div class="table-wrap"><table class="data">
         <thead><tr><th>Kategori</th><th>Kitap sayısı</th><th>İşlem</th></tr></thead>
