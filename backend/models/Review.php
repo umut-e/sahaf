@@ -20,7 +20,7 @@ class Review {
                 FROM reviews r
                 JOIN users u ON r.user_id = u.id
                 WHERE r.book_id = :bid
-                ORDER BY r.created_at DESC";
+                ORDER BY like_count DESC, r.created_at DESC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':bid' => $bookId, ':viewer' => $viewerId ?: 0]);
         return $stmt->fetchAll();

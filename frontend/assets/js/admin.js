@@ -315,6 +315,7 @@ async function initUsers() {
           <div style="flex:1"><label>İlçe</label><select name="district" id="uf-dist"></select></div>
         </div>
         <div class="field"><label>Açık Adres</label><textarea name="address">${esc(full.address || '')}</textarea></div>
+        <div class="field"><label>Yeni şifre <span class="muted small">(boş bırakırsanız değişmez)</span></label><input type="password" name="password" autocomplete="new-password" placeholder="••••••"></div>
         <div class="field-error" id="uf-err"></div>
         <button class="btn btn-primary btn-block" type="submit">Kaydet</button>
       </form>`, { wide: true });
@@ -325,9 +326,17 @@ async function initUsers() {
     prov.addEventListener('change', () => fillDistrictSelect(dist, prov.value));
     el.querySelector('#uf').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const fd = new FormData(e.target);
+      const data = Object.fromEntries(new FormData(e.target));
+      if (!data.password) delete data.password;
+
+      // Yetki değiştiyse onay iste
+      if (data.role !== full.role) {
+        const yeni = data.role === 'admin' ? 'Yönetici' : 'Üye';
+        const ok = await confirmModal(`"${full.name}" kullanıcısının yetkisi "${yeni}" olarak değiştirilecek. Onaylıyor musunuz?`, { okText: 'Onayla', danger: data.role === 'admin' });
+        if (!ok) return;
+      }
       try {
-        await api('/users/' + u.id, { method: 'PUT', body: Object.fromEntries(fd) });
+        await api('/users/' + u.id, { method: 'PUT', body: data });
         toast('Kullanıcı güncellendi.', 'success'); close(); render();
       } catch (err) { el.querySelector('#uf-err').textContent = err.message; }
     });

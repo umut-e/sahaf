@@ -283,11 +283,21 @@ textarea { resize: vertical; min-height: 90px; }
 /* ---------------- yorumlar ---------------- */
 .reviews-section { margin-top: 3rem; }
 .reviews-section h2 { font-size: 1.4rem; }
-.review-item { padding: 1rem 0; border-bottom: 1px solid var(--border); }
-.review-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .35rem; }
+.review-item { padding: 1.1rem 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 1.25rem; }
+.review-main { flex: 1; min-width: 0; }
+.review-head { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-bottom: .35rem; }
 .review-author { font-weight: 600; }
-.review-like { display: inline-flex; align-items: center; gap: .3rem; background: none; border: 1px solid var(--border); border-radius: var(--radius-pill); padding: .2rem .7rem; cursor: pointer; color: var(--muted); font-size: .82rem; transition: all .15s; }
-.review-like.on { color: var(--danger); border-color: var(--danger); }
+.review-date { margin-left: auto; }
+.review-comment { margin: .25rem 0 0; }
+.review-like {
+  flex-shrink: 0; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: .15rem;
+  width: 64px; min-height: 64px; background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-md); cursor: pointer; color: var(--muted); transition: all .15s;
+}
+.review-like:hover { border-color: var(--danger); color: var(--danger); transform: translateY(-2px); }
+.review-like .like-heart { font-size: 1.5rem; line-height: 1; }
+.review-like .like-count { font-size: .95rem; font-weight: 700; }
+.review-like.on { color: var(--danger); border-color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
 .review-form { background: var(--surface-2); border-radius: var(--radius-md); padding: 1.25rem; margin: 1.5rem 0; }
 
 /* ---------------- sepet & sipariş kalemleri ---------------- */

@@ -76,7 +76,7 @@ class User {
 
     /** İzinli alanları günceller. Rol sadece admin tarafından değiştirilebilir (controller'da kontrol). */
     public function update($id, array $data): bool {
-        $allowed = ['name', 'phone_number', 'profile_photo', 'address', 'province', 'district', 'role'];
+        $allowed = ['name', 'phone_number', 'profile_photo', 'address', 'province', 'district', 'role', 'password'];
         $set = [];
         $bind = [':id' => $id];
         foreach ($allowed as $f) {

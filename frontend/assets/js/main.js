@@ -258,12 +258,18 @@ async function loadReviews(bookId, book) {
   if (!reviews.length) { list.innerHTML = '<p class="muted">Henüz değerlendirme yok. İlk yorumu siz yapın!</p>'; return; }
   list.innerHTML = reviews.map((r) => `
     <div class="review-item">
-      <div class="review-head">
-        <div><span class="review-author">${esc(r.user_name)}</span> ${starsHtml(r.rating)}</div>
-        <span class="muted small">${formatDate(r.created_at)}</span>
+      <div class="review-main">
+        <div class="review-head">
+          <span class="review-author">${esc(r.user_name)}</span>
+          ${starsHtml(r.rating)}
+          <span class="muted small review-date">${formatDate(r.created_at)}</span>
+        </div>
+        ${r.comment ? `<p class="review-comment">${esc(r.comment)}</p>` : ''}
       </div>
-      ${r.comment ? `<p>${esc(r.comment)}</p>` : ''}
-      <button class="review-like ${r.liked_by_me ? 'on' : ''}" data-rid="${r.id}">♥ <span>${r.like_count}</span></button>
+      <button class="review-like ${r.liked_by_me ? 'on' : ''}" data-rid="${r.id}" aria-label="Beğen" title="Beğen">
+        <span class="like-heart">♥</span>
+        <span class="like-count">${r.like_count}</span>
+      </button>
     </div>`).join('');
 
   list.querySelectorAll('.review-like').forEach((btn) => btn.addEventListener('click', async () => {
@@ -272,7 +278,7 @@ async function loadReviews(bookId, book) {
     try {
       const res = await api(`/reviews/${btn.dataset.rid}/like`, { method: on ? 'DELETE' : 'POST' });
       btn.classList.toggle('on', !on);
-      btn.querySelector('span').textContent = res.like_count;
+      btn.querySelector('.like-count').textContent = res.like_count;
     } catch (e) { toast(e.message, 'error'); }
   }));
 }
@@ -486,6 +492,8 @@ async function initProfile() {
         </div>
         <div class="field"><label>Açık Adres</label><textarea name="address" placeholder="Mahalle, sokak, no...">${esc(me.address || '')}</textarea></div>
         <div class="field"><label>Profil fotoğrafı</label><input type="file" name="profile_photo" accept="image/*"></div>
+        <div class="field"><label>Yeni şifre <span class="muted small">(değiştirmek istemiyorsanız boş bırakın)</span></label><input type="password" name="password" autocomplete="new-password" placeholder="••••••" minlength="6"></div>
+        <div class="field-error" id="pf-err"></div>
         <button class="btn btn-primary" type="submit">Kaydet</button>
       </form>
     </div>`;
@@ -502,6 +510,11 @@ async function initProfile() {
     fd.append('_method', 'PUT');
     const photo = fd.get('profile_photo');
     if (!photo || !photo.size) fd.delete('profile_photo');
+    const pw = fd.get('password');
+    const errEl = document.getElementById('pf-err');
+    if (errEl) errEl.textContent = '';
+    if (pw && pw.length < 6) { if (errEl) errEl.textContent = 'Şifre en az 6 karakter olmalıdır.'; return; }
+    if (!pw) fd.delete('password');
     try {
       const res = await api('/users/' + me.id, { method: 'POST', form: fd });
       const u = currentUser();

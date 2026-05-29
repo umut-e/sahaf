@@ -44,6 +44,17 @@ class UserController {
             unset($data['role']);
         }
 
+        // Şifre güncelleme: boşsa dokunma, doluysa doğrula ve hash'le.
+        if (array_key_exists('password', $data)) {
+            if ($data['password'] === '' || $data['password'] === null) {
+                unset($data['password']);
+            } elseif (strlen($data['password']) < 6) {
+                Response::error('Şifre en az 6 karakter olmalıdır.', 422);
+            } else {
+                $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);
+            }
+        }
+
         // Profil fotoğrafı yüklendiyse
         $photos = Uploader::handleImages('profile_photo', 'user_');
         if (!empty($photos)) {

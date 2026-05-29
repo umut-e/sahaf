@@ -57,13 +57,18 @@ class ReviewController {
         Response::json(['message' => 'Beğeni kaldırıldı', 'like_count' => $model->likeCount($reviewId)], 200);
     }
 
-    /** "Umut Efe Doğan" -> "U*** E** D****" (her kelimenin ilk harfi + yıldız). */
+    /**
+     * "Umut Efe Doğan" -> "U*** E** D****" (her kelimenin ilk harfi + yıldız).
+     * PCRE /u ile çok baytlı (Türkçe) güvenli — mbstring gerektirmez.
+     */
     private static function maskName(string $name): string {
-        $parts = preg_split('/\s+/', trim($name));
+        $parts = preg_split('/\s+/u', trim($name));
         $masked = array_map(function ($w) {
-            $len = mb_strlen($w, 'UTF-8');
+            preg_match_all('/./u', $w, $m);
+            $chars = $m[0];
+            $len = count($chars);
             if ($len <= 1) return $w;
-            return mb_substr($w, 0, 1, 'UTF-8') . str_repeat('*', $len - 1);
+            return $chars[0] . str_repeat('*', $len - 1);
         }, $parts);
         return implode(' ', $masked);
     }
