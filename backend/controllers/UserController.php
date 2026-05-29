@@ -2,99 +2,62 @@
 require_once __DIR__ . '/../models/User.php';
 
 /**
- * UserController exposes endpoints for retrieving and updating user
- * information. Normal users can fetch and update their own profile. Admins
- * can list all users and delete them. Role-based access control is
- * recommended as part of API design best practices【236949772141159†L350-L360】.
+ * Kullanıcı uç noktaları. Kullanıcı kendi profilini görür/günceller; admin
+ * tüm kullanıcıları listeler ve silebilir. Profil güncelleme multipart olabilir
+ * (profil fotoğrafı yüklemesi için).
  */
 class UserController {
     private $db;
+
     public function __construct($db) {
         $this->db = $db;
     }
 
-    // Get current user profile or specific user (admin)
-    public function get($id = null) {
-        $role = $_SERVER['HTTP_X_USER_ROLE'] ?? 'user';
-        $userId = $_SERVER['HTTP_X_USER_ID'] ?? null;
-        $userModel = new User($this->db);
-        if ($id) {
-            // only admin or the user themselves can access
-            if ($role !== 'admin' && $userId != $id) {
-                http_response_code(403);
-                echo json_encode(['error' => 'Forbidden']);
-                return;
-            }
-            $user = $userModel->findById($id);
-            if ($user) {
-                http_response_code(200);
-                echo json_encode($user);
-            } else {
-                http_response_code(404);
-                echo json_encode(['error' => 'User not found']);
-            }
-        } else {
-            // list all users (admin only)
-            if ($role !== 'admin') {
-                http_response_code(403);
-                echo jso
-
-
-
-
-
-
-
+    public function list(): void {
+        Auth::requireAdmin();
+        $result = (new User($this->db))->listAll([
+            'search' => Request::query('search'),
+            'role'   => Request::query('role'),
+            'sort'   => Request::query('sort'),
+        ]);
+        Response::json(['data' => $result['data'], 'total' => $result['total']], 200);
     }
 
-    // Update user profile (name, photo)
-    public function update($id) {
-        $role = $_SERVER['HTTP_X_USER_ROLE'] ?? 'user';
-        $userId = $_SERVER['HTTP_X_USER_ID'] ?? null;
-        if ($role !== 'admin' && $userId != $id) {
-            http_response_code(403);
-            echo json_encode(['error' => 'Forbidden']);
-            return;
+    public function get($id): void {
+        $userId = Auth::requireAuth();
+        if (!Auth::isAdmin() && $userId != $id) {
+            Response::error('Yetkiniz yok.', 403);
         }
-        
-        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
-        if (strpos($contentType, 'application/json') !== false) {
-            $data = json_decode(file_get_contents('php://input'), true);
-        } else {
-            $data = $_POST;
+        $user = (new User($this->db))->findById($id);
+        $user ? Response::json($user, 200) : Response::error('Kullanıcı bulunamadı.', 404);
+    }
+
+    public function update($id): void {
+        $userId = Auth::requireAuth();
+        if (!Auth::isAdmin() && $userId != $id) {
+            Response::error('Yetkiniz yok.', 403);
         }
-        
-        if ($role !== 'admin' && isset($data['role'])) {
+        $data = Request::body();
+
+        // Rol yalnızca admin tarafından değiştirilebilir.
+        if (!Auth::isAdmin()) {
             unset($data['role']);
         }
-        
-        $userModel = new User($this->db);
-        if ($userModel->update($id, $data)) {
-            http_response_code(200);
-            echo json_encode(['message' => 'Profile updated']);
-        } else {
-            http_response_code(400);
-            echo json_encode(['error' => 'Failed to update profile']);
+
+        // Profil fotoğrafı yüklendiyse
+        $photos = Uploader::handleImages('profile_photo', 'user_');
+        if (!empty($photos)) {
+            $data['profile_photo'] = $photos[0];
         }
+
+        $model = new User($this->db);
+        $model->update($id, $data);
+        Response::json(['message' => 'Profil güncellendi.', 'user' => $model->findById($id)], 200);
     }
 
-    // Delete a user (admin only)
-    public function delete($id) {
-        $role = $_SERVER['HTTP_X_USER_ROLE'] ?? 'user';
-        if ($role !== 'admin') {
-            http_response_code(403);
-            echo json_encode(['error' => 'Forbidden']);
-            return;
-        }
-        $stmt = $this->db->prepare("DELETE FROM users WHERE id = :id");
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-        if ($stmt->execute()) {
-            http_response_code(200);
-            echo json_encode(['message' => 'User deleted']);
-        } else {
-            http_response_code(400);
-            echo json_encode(['error' => 'Failed to delete user']);
-        }
+    public function delete($id): void {
+        Auth::requireAdmin();
+        (new User($this->db))->delete($id);
+        Response::ok('Kullanıcı silindi.');
     }
 }
-?>

@@ -1,47 +1,73 @@
 <?php
 /**
- * Review model handles ratings and comments on books. Users can leave a
- * rating (1-5) and an optional comment for each book. Each user can only
- * leave one review per book. Reviews are ordered by date.
+ * Review modeli — kitap puanları ve yorumları. (user_id, book_id) benzersizdir
+ * (her kullanıcı kitap başına tek yorum; tekrar gönderirse güncellenir).
+ * Yorumlar beğenilebilir (review_likes) ve anonim olabilir (is_anonymous).
  */
 class Review {
-    private $conn;
-    private $table_name = "reviews";
+    private $db;
 
     public function __construct($db) {
-        $this->conn = $db;
+        $this->db = $db;
     }
 
-    // Get reviews for a book
-    public function getByBook($book_id) {
-        $stmt = $this->conn->prepare("SELECT r.id, r.rating, r.comment, r.created_at, u.name as user_name FROM " . $this->table_name . " r JOIN users u ON r.user_id = u.id WHERE r.book_id = :book_id ORDER BY r.created_at DESC");
-        $stmt->bindParam(':book_id', $book_id, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    /** Bir kitabın yorumları. Giriş yapan kullanıcı için beğeni durumu da döner. */
+    public function getByBook($bookId, $viewerId = null): array {
+        $sql = "SELECT r.id, r.rating, r.comment, r.created_at, r.is_anonymous,
+                       CASE WHEN r.is_anonymous = 1 THEN 'Anonim' ELSE u.name END AS user_name,
+                       (SELECT COUNT(*) FROM review_likes WHERE review_id = r.id) AS like_count,
+                       EXISTS(SELECT 1 FROM review_likes WHERE review_id = r.id AND user_id = :viewer) AS liked_by_me
+                FROM reviews r
+                JOIN users u ON r.user_id = u.id
+                WHERE r.book_id = :bid
+                ORDER BY r.created_at DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':bid' => $bookId, ':viewer' => $viewerId ?: 0]);
+        return $stmt->fetchAll();
     }
 
-    // Add or update a review
-    public function upsert($user_id, $book_id, $rating, $comment) {
-        // check if existing
-        $stmt = $this->conn->prepare("SELECT id FROM " . $this->table_name . " WHERE user_id = :user_id AND book_id = :book_id");
-        $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
-        $stmt->bindParam(':book_id', $book_id, PDO::PARAM_INT);
-        $stmt->execute();
-        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($existing) {
-            $update = $this->conn->prepare("UPDATE " . $this->table_name . " SET rating = :rating, comment = :comment, updated_at = NOW() WHERE id = :id");
-            $update->bindParam(':rating', $rating, PDO::PARAM_INT);
-            $update->bindParam(':comment', $comment);
-            $update->bindParam(':id', $existing['id'], PDO::PARAM_INT);
-            return $update->execute();
-        } else {
-            $insert = $this->conn->prepare("INSERT INTO " . $this->table_name . " (user_id, book_id, rating, comment, created_at, updated_at) VALUES (:user_id, :book_id, :rating, :comment, NOW(), NOW())");
-            $insert->bindParam(':user_id', $user_id, PDO::PARAM_INT);
-            $insert->bindParam(':book_id', $book_id, PDO::PARAM_INT);
-            $insert->bindParam(':rating', $rating, PDO::PARAM_INT);
-            $insert->bindParam(':comment', $comment);
-            return $insert->execute();
-        }
+    public function hasReviewed($userId, $bookId): bool {
+        $stmt = $this->db->prepare("SELECT 1 FROM reviews WHERE user_id = :u AND book_id = :b LIMIT 1");
+        $stmt->execute([':u' => $userId, ':b' => $bookId]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    /** Kullanıcı, teslim edilen bir siparişte bu kitabı satın aldıysa yorum yapabilir. */
+    public function canReview($userId, $bookId): bool {
+        $sql = "SELECT 1 FROM order_items oi
+                JOIN orders o ON oi.order_id = o.id
+                WHERE o.user_id = :u AND oi.book_id = :b AND o.status = 'completed' LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':u' => $userId, ':b' => $bookId]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    public function upsert($userId, $bookId, int $rating, ?string $comment, bool $anonymous = false): bool {
+        $sql = "INSERT INTO reviews (user_id, book_id, rating, comment, is_anonymous, created_at, updated_at)
+                VALUES (:u, :b, :r, :c, :a, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE rating = :r2, comment = :c2, is_anonymous = :a2, updated_at = NOW()";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':u' => $userId, ':b' => $bookId, ':r' => $rating, ':c' => $comment, ':a' => $anonymous ? 1 : 0,
+            ':r2' => $rating, ':c2' => $comment, ':a2' => $anonymous ? 1 : 0,
+        ]);
+    }
+
+    public function like($reviewId, $userId): bool {
+        $stmt = $this->db->prepare(
+            "INSERT IGNORE INTO review_likes (review_id, user_id, created_at) VALUES (:r, :u, NOW())"
+        );
+        return $stmt->execute([':r' => $reviewId, ':u' => $userId]);
+    }
+
+    public function unlike($reviewId, $userId): bool {
+        $stmt = $this->db->prepare("DELETE FROM review_likes WHERE review_id = :r AND user_id = :u");
+        return $stmt->execute([':r' => $reviewId, ':u' => $userId]);
+    }
+
+    public function likeCount($reviewId): int {
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM review_likes WHERE review_id = :r");
+        $stmt->execute([':r' => $reviewId]);
+        return (int) $stmt->fetchColumn();
     }
 }
-?>

@@ -1,137 +1,105 @@
 <?php
 require_once __DIR__ . '/../models/Order.php';
 require_once __DIR__ . '/../models/CartItem.php';
-require_once __DIR__ . '/../models/Book.php';
+require_once __DIR__ . '/../models/Notification.php';
 
 /**
- * OrderController allows users to place orders from their cart and view
- * existing orders. Admins can view all orders. Each order consists of
- * multiple items.
+ * Sipariş uç noktaları. Kullanıcı kendi siparişlerini görür/oluşturur/iptal eder;
+ * admin tüm siparişleri görür ve durumlarını günceller.
  */
 class OrderController {
     private $db;
+
     public function __construct($db) {
         $this->db = $db;
     }
 
-    // List orders for current user or all orders for admin
-    public function list() {
-        $role = $_SERVER['HTTP_X_USER_ROLE'] ?? 'user';
-        $userId = $_SERVER['HTTP_X_USER_ID'] ?? null;
-        $orderModel = new Order($this->db);
-        
+    public function list(): void {
+        $userId = Auth::requireAuth();
         $params = [
-            'page' => $_GET['page'] ?? 1,
-            'limit' => $_GET['limit'] ?? 20,
-            'search' => $_GET['search'] ?? null,
-            'status' => $_GET['status'] ?? null,
-            'sort' => $_GET['sort'] ?? null,
+            'page'   => Request::int('page', 1),
+            'limit'  => Request::int('limit', 20),
+            'search' => Request::query('search'),
+            'status' => Request::query('status'),
+            'sort'   => Request::query('sort'),
         ];
-        
-        $orders = $orderModel->getOrders($role === 'admin' ? null : $userId, $params);
-        http_response_code(200);
-        echo json_encode($orders);
+        $model = new Order($this->db);
+        $result = $model->getOrders(Auth::isAdmin() ? null : $userId, $params);
+        Response::paginated($result['data'], $result['total'], $result['page'], $result['limit']);
     }
 
-    // Place a new order from cart
-    public function create() {
-        $userId = $_SERVER['HTTP_X_USER_ID'] ?? null;
-        if (!$userId) {
-            http_response_code(401);
-            echo json_encode(['error' => 'Unauthorized']);
-            return;
+    public function get($id): void {
+        $userId = Auth::requireAuth();
+        $order = (new Order($this->db))->getById($id);
+        if (!$order) {
+            Response::error('Sipariş bulunamadı.', 404);
         }
-        // get cart items
-        $cartModel = new CartItem($this->db);
-        $items = $cartModel->getByUser($userId);
+        if (!Auth::isAdmin() && $order['user_id'] != $userId) {
+            Response::error('Bu siparişi görüntüleme yetkiniz yok.', 403);
+        }
+        Response::json($order, 200);
+    }
+
+    public function create(): void {
+        $userId = Auth::requireAuth();
+        $cart = new CartItem($this->db);
+        $items = $cart->getByUser($userId);
         if (empty($items)) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Cart is empty']);
-            return;
+            Response::error('Sepetiniz boş.', 400);
         }
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = Request::body();
         $address = $data['address'] ?? null;
 
-        $orderModel = new Order($this->db);
         try {
-            $orderId = $orderModel->create($userId, $items, $address);
-            http_response_code(201);
-            echo json_encode(['message' => 'Order placed', 'order_id' => $orderId]);
+            $orderId = (new Order($this->db))->create($userId, $items, $address);
+            (new Notification($this->db))->add($userId, "Siparişiniz alındı (#$orderId). Teşekkürler!");
+            Response::created('Siparişiniz alındı.', ['order_id' => $orderId]);
         } catch (Exception $e) {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        $role = $_SERVER['HTTP_X_USER_ROLE'] ?? 'user';
-        
-        $data = json_decode(file_get_contents('php://input'), true);
-        if (!isset($data['status'])) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Status is required']);
-            return;
+            Response::error($e->getMessage(), 400);
         }
+    }
 
-        $orderModel = new Order($this->db);
-        $order = $orderModel->getById($id);
-        
+    public function updateStatus($id): void {
+        $userId = Auth::requireAuth();
+        $data = Request::body();
+        if (empty($data['status'])) {
+            Response::error('Durum (status) zorunludur.', 422);
+        }
+        $status = $data['status'];
+        $model = new Order($this->db);
+        $order = $model->getById($id);
         if (!$order) {
-            http_response_code(404);
-            echo json_encode(['error' => 'Order not found']);
-            return;
+            Response::error('Sipariş bulunamadı.', 404);
         }
 
-        if ($role !== 'admin') {
-            // User can only cancel their own pending orders
-            if ($order['user_id'] != $user_id) {
-                http_response_code(403);
-                echo json_encode(['error' => 'Forbidden']);
-                return;
+        $allowed = ['pending', 'processing', 'shipped', 'completed', 'cancelled'];
+        if (!in_array($status, $allowed, true)) {
+            Response::error('Geçersiz durum.', 422);
+        }
+
+        if (!Auth::isAdmin()) {
+            // Kullanıcı yalnızca kendi bekleyen siparişini iptal edebilir.
+            if ($order['user_id'] != $userId) {
+                Response::error('Yetkiniz yok.', 403);
             }
-            if ($data['status'] !== 'user_cancelled' && $data['status'] !== 'cancelled') {
-                http_response_code(403);
-                echo json_encode(['error' => 'Users can only cancel orders']);
-                return;
+            if ($status !== 'cancelled') {
+                Response::error('Yalnızca sipariş iptali yapabilirsiniz.', 403);
             }
             if ($order['status'] !== 'pending') {
-                http_response_code(400);
-                echo json_encode(['error' => 'Only pending orders can be cancelled']);
-                return;
+                Response::error('Sadece bekleyen siparişler iptal edilebilir.', 400);
             }
         }
 
         $reason = $data['cancellation_reason'] ?? null;
-        if ($orderModel->updateStatus($id, $data['status'], $reason)) {
-            http_response_code(200);
-            echo json_encode(['message' => 'Order status updated']);
-        } else {
-            http_response_code(400);
-            echo json_encode(['error' => 'Failed to update order status']);
-        }
+        $model->updateStatus($id, $status, $reason);
+
+        // Sipariş sahibine bildirim
+        $labels = [
+            'pending' => 'beklemede', 'processing' => 'hazırlanıyor', 'shipped' => 'kargolandı',
+            'completed' => 'tamamlandı', 'cancelled' => 'iptal edildi',
+        ];
+        (new Notification($this->db))->add($order['user_id'], "Siparişinizin (#$id) durumu: " . ($labels[$status] ?? $status) . ".");
+
+        Response::ok('Sipariş durumu güncellendi.');
     }
 }
-?>

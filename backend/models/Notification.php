@@ -1,38 +1,45 @@
 <?php
 /**
- * Notification model stores messages for users, such as order updates or
- * admin notices. Users can retrieve unread notifications and mark them as
- * read. Notifications include a simple is_read boolean.
+ * Notification modeli — kullanıcıya yönelik bildirimler (sipariş güncellemeleri vb.).
  */
 class Notification {
-    private $conn;
-    private $table_name = "notifications";
+    private $db;
 
     public function __construct($db) {
-        $this->conn = $db;
+        $this->db = $db;
     }
 
-    // Get notifications for a user
-    public function getByUser($user_id) {
-        $stmt = $this->conn->prepare("SELECT * FROM " . $this->table_name . " WHERE user_id = :user_id ORDER BY created_at DESC");
-        $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+    public function getByUser($userId, int $limit = 30): array {
+        $stmt = $this->db->prepare(
+            "SELECT id, message, is_read, created_at FROM notifications
+             WHERE user_id = :uid ORDER BY created_at DESC LIMIT :lim"
+        );
+        $stmt->bindValue(':uid', $userId);
+        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->fetchAll();
     }
 
-    // Add a notification
-    public function add($user_id, $message) {
-        $stmt = $this->conn->prepare("INSERT INTO " . $this->table_name . " (user_id, message, is_read, created_at) VALUES (:user_id, :message, 0, NOW())");
-        $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
-        $stmt->bindParam(':message', $message);
-        return $stmt->execute();
+    public function unreadCount($userId): int {
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = :uid AND is_read = 0");
+        $stmt->execute([':uid' => $userId]);
+        return (int) $stmt->fetchColumn();
     }
 
-    // Mark a notification as read
-    public function markRead($id) {
-        $stmt = $this->conn->prepare("UPDATE " . $this->table_name . " SET is_read = 1 WHERE id = :id");
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-        return $stmt->execute();
+    public function add($userId, string $message): bool {
+        $stmt = $this->db->prepare(
+            "INSERT INTO notifications (user_id, message, is_read, created_at) VALUES (:uid, :msg, 0, NOW())"
+        );
+        return $stmt->execute([':uid' => $userId, ':msg' => $message]);
+    }
+
+    public function markRead($id, $userId): bool {
+        $stmt = $this->db->prepare("UPDATE notifications SET is_read = 1 WHERE id = :id AND user_id = :uid");
+        return $stmt->execute([':id' => $id, ':uid' => $userId]);
+    }
+
+    public function markAllRead($userId): bool {
+        return $this->db->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = :uid")
+                        ->execute([':uid' => $userId]);
     }
 }
-?>

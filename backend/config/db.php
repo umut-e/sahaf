@@ -1,39 +1,44 @@
 <?php
-// Database configuration and connection class
-// This class encapsulates the PDO connection to the MySQL database. It reads
-// configuration parameters like host, database name, username and password.
-// If the connection fails, it sends a 500 response with an error message.
-
+/**
+ * Veritabanı bağlantısı (MySQL / PDO).
+ *
+ * Kimlik bilgileri ortam değişkenleriyle (env) override edilebilir; aksi halde
+ * yerel geliştirme için varsayılanlar kullanılır. Bağlantı PDO exception modunda
+ * açılır ve hata olursa 500 JSON döner.
+ *
+ */
 class Database {
-    private $host = "localhost";
-    private $db_name = "sahaf_db";
-    private $username = "root";
-    private $password = "";
+    private $host;
+    private $db_name;
+    private $username;
+    private $password;
     public $conn;
 
-    /**
-     * Returns a PDO connection to the MySQL database. On error it outputs a
-     * JSON error message and stops execution. In a production environment you
-     * would likely throw the exception or log it instead of echoing it.
-     */
+    public function __construct() {
+        $this->host     = getenv('DB_HOST') ?: 'localhost';
+        $this->db_name  = getenv('DB_NAME') ?: 'sahaf_db';
+        $this->username = getenv('DB_USER') ?: 'root';
+        $this->password = getenv('DB_PASS') !== false ? getenv('DB_PASS') : '';
+    }
+
     public function getConnection() {
         $this->conn = null;
         try {
             $this->conn = new PDO(
-                "mysql:host=" . $this->host . ";dbname=" . $this->db_name . ";charset=utf8",
+                "mysql:host={$this->host};dbname={$this->db_name};charset=utf8mb4",
                 $this->username,
-                $this->password
+                $this->password,
+                [
+                    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES   => false,
+                ]
             );
-            // Use exceptions for error handling
-            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        } catch (PDOException $exception) {
+        } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode([
-                "error" => "Database connection error: " . $exception->getMessage()
-            ]);
+            echo json_encode(['error' => 'Veritabanı bağlantı hatası'], JSON_UNESCAPED_UNICODE);
             exit;
         }
         return $this->conn;
     }
 }
-?>

@@ -2,54 +2,55 @@
 require_once __DIR__ . '/../models/Review.php';
 
 /**
- * ReviewController exposes endpoints for listing reviews of a book and
- * submitting a rating/comment. Users must be authenticated to post a
- * review. A user can only leave one review per book; additional posts
- * update the existing entry.
+ * Yorum uç noktaları. Listeleme açık; yorum yapma ve beğeni giriş gerektirir.
  */
 class ReviewController {
     private $db;
+
     public function __construct($db) {
         $this->db = $db;
     }
 
-    // List reviews for a book
-    public function list($book_id) {
-        $reviewModel = new Review($this->db);
-        $reviews = $reviewModel->getByBook($book_id);
-        http_response_code(200);
-        echo json_encode($reviews);
+    public function list($bookId): void {
+        $reviews = (new Review($this->db))->getByBook($bookId, Auth::userId());
+        // EXISTS/bool alanlarını JSON için normalize et
+        foreach ($reviews as &$r) {
+            $r['like_count']  = (int) $r['like_count'];
+            $r['liked_by_me'] = (bool) $r['liked_by_me'];
+            $r['is_anonymous'] = (bool) $r['is_anonymous'];
+        }
+        unset($r);
+        Response::json($reviews, 200);
     }
 
-    // Post a review for a book
-    public function create($book_id) {
-        $userId = $_SERVER['HTTP_X_USER_ID'] ?? null;
-        if (!$userId) {
-            http_response_code(401);
-            echo json_encode(['error' => 'Unauthorized']);
-            return;
-        }
-        $data = json_decode(file_get_contents('php://input'), true);
-        if (!isset($data['rating'])) {
-            http_response_code(400);
-            echo json_encode(['error' => 'rating is required']);
-            return;
-        }
-        $rating = (int)$data['rating'];
+    public function create($bookId): void {
+        $userId = Auth::requireAuth();
+        $data = Request::body();
+        $rating = (int) ($data['rating'] ?? 0);
         if ($rating < 1 || $rating > 5) {
-            http_response_code(400);
-            echo json_encode(['error' => 'rating must be between 1 and 5']);
-            return;
+            Response::error('Puan 1 ile 5 arasında olmalıdır.', 422);
         }
-        $comment = $data['comment'] ?? '';
-        $reviewModel = new Review($this->db);
-        if ($reviewModel->upsert($userId, $book_id, $rating, $comment)) {
-            http_response_code(201);
-            echo json_encode(['message' => 'Review saved']);
-        } else {
-            http_response_code(500);
-            echo json_encode(['error' => 'Failed to save review']);
-        }
+        (new Review($this->db))->upsert(
+            $userId,
+            $bookId,
+            $rating,
+            trim($data['comment'] ?? ''),
+            !empty($data['is_anonymous'])
+        );
+        Response::created('Yorumunuz kaydedildi.');
+    }
+
+    public function like($reviewId): void {
+        $userId = Auth::requireAuth();
+        $model = new Review($this->db);
+        $model->like($reviewId, $userId);
+        Response::json(['message' => 'Beğenildi', 'like_count' => $model->likeCount($reviewId)], 200);
+    }
+
+    public function unlike($reviewId): void {
+        $userId = Auth::requireAuth();
+        $model = new Review($this->db);
+        $model->unlike($reviewId, $userId);
+        Response::json(['message' => 'Beğeni kaldırıldı', 'like_count' => $model->likeCount($reviewId)], 200);
     }
 }
-?>

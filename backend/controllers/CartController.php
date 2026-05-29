@@ -1,97 +1,43 @@
 <?php
 require_once __DIR__ . '/../models/CartItem.php';
-require_once __DIR__ . '/../models/Book.php';
 
 /**
- * CartController manages the cart operations. Users can view their cart,
- * add books, update quantities and remove items. Cart is stored in
- * cart_items table.
+ * Sepet uç noktaları. Tüm işlemler giriş gerektirir.
  */
 class CartController {
     private $db;
+
     public function __construct($db) {
         $this->db = $db;
     }
 
-    // Get cart items for current user
-    public function list() {
-        $userId = $_SERVER['HTTP_X_USER_ID'] ?? null;
-        if (!$userId) {
-            http_response_code(401);
-            echo json_encode(['error' => 'Unauthorized']);
-            return;
-        }
-        $cartModel = new CartItem($this->db);
-        $items = $cartModel->getByUser($userId);
-        http_response_code(200);
-        echo json_encode($items);
+    public function list(): void {
+        $userId = Auth::requireAuth();
+        Response::json((new CartItem($this->db))->getByUser($userId), 200);
     }
 
-    // Add book to cart
-    public function add() {
-        $userId = $_SERVER['HTTP_X_USER_ID'] ?? null;
-        if (!$userId) {
-            http_response_code(401);
-            echo json_encode(['error' => 'Unauthorized']);
-            return;
+    public function add(): void {
+        $userId = Auth::requireAuth();
+        $data = Request::body();
+        if (empty($data['book_id'])) {
+            Response::error('book_id zorunludur.', 422);
         }
-        $data = json_decode(file_get_contents('php://input'), true);
-        if (!isset($data['book_id'])) {
-            http_response_code(400);
-            echo json_encode(['error' => 'book_id is required']);
-            return;
-        }
-        $quantity = $data['quantity'] ?? 1;
-        $cartModel = new CartItem($this->db);
-        if ($cartModel->add($userId, $data['book_id'], $quantity)) {
-            http_response_code(201);
-            echo json_encode(['message' => 'Added to cart']);
-        } else {
-            http_response_code(500);
-            echo json_encode(['error' => 'Failed to add to cart']);
-        }
+        $qty = max(1, (int) ($data['quantity'] ?? 1));
+        (new CartItem($this->db))->add($userId, (int) $data['book_id'], $qty);
+        Response::ok('Sepete eklendi.');
     }
 
-    // Update cart item quantity
-    public function update($id) {
-        $userId = $_SERVER['HTTP_X_USER_ID'] ?? null;
-        if (!$userId) {
-            http_response_code(401);
-            echo json_encode(['error' => 'Unauthorized']);
-            return;
-        }
-        $data = json_decode(file_get_contents('php://input'), true);
-        if (!isset($data['quantity'])) {
-            http_response_code(400);
-            echo json_encode(['error' => 'quantity is required']);
-            return;
-        }
-        $cartModel = new CartItem($this->db);
-        if ($cartModel->updateQuantity($id, $data['quantity'])) {
-            http_response_code(200);
-            echo json_encode(['message' => 'Cart updated']);
-        } else {
-            http_response_code(400);
-            echo json_encode(['error' => 'Failed to update cart']);
-        }
+    public function update($id): void {
+        $userId = Auth::requireAuth();
+        $data = Request::body();
+        $qty = max(1, (int) ($data['quantity'] ?? 1));
+        (new CartItem($this->db))->updateQuantity($id, $userId, $qty);
+        Response::ok('Sepet güncellendi.');
     }
 
-    // Remove cart item
-    public function delete($id) {
-        $userId = $_SERVER['HTTP_X_USER_ID'] ?? null;
-        if (!$userId) {
-            http_response_code(401);
-            echo json_encode(['error' => 'Unauthorized']);
-            return;
-        }
-        $cartModel = new CartItem($this->db);
-        if ($cartModel->delete($id)) {
-            http_response_code(200);
-            echo json_encode(['message' => 'Removed from cart']);
-        } else {
-            http_response_code(400);
-            echo json_encode(['error' => 'Failed to remove']);
-        }
+    public function delete($id): void {
+        $userId = Auth::requireAuth();
+        (new CartItem($this->db))->delete($id, $userId);
+        Response::ok('Üründen çıkarıldı.');
     }
 }
-?>

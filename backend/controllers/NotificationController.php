@@ -2,47 +2,36 @@
 require_once __DIR__ . '/../models/Notification.php';
 
 /**
- * NotificationController allows users to fetch their notifications and mark
- * them as read. Admins could create notifications through other parts of
- * the system (not implemented here). Notifications are returned in
- * descending order of creation.
+ * Bildirim uç noktaları. Giriş gerektirir. Liste yanıtı okunmamış sayacını da
+ * içerir (header'daki çan rozeti için).
  */
 class NotificationController {
     private $db;
+
     public function __construct($db) {
         $this->db = $db;
     }
 
-    // Get notifications for current user
-    public function list() {
-        $userId = $_SERVER['HTTP_X_USER_ID'] ?? null;
-        if (!$userId) {
-            http_response_code(401);
-            echo json_encode(['error' => 'Unauthorized']);
-            return;
+    public function list(): void {
+        $userId = Auth::requireAuth();
+        $model = new Notification($this->db);
+        $items = $model->getByUser($userId);
+        foreach ($items as &$n) {
+            $n['is_read'] = (bool) $n['is_read'];
         }
-        $notifModel = new Notification($this->db);
-        $notifications = $notifModel->getByUser($userId);
-        http_response_code(200);
-        echo json_encode($notifications);
+        unset($n);
+        Response::json(['data' => $items, 'unread' => $model->unreadCount($userId)], 200);
     }
 
-    // Mark a notification as read
-    public function markRead($id) {
-        $userId = $_SERVER['HTTP_X_USER_ID'] ?? null;
-        if (!$userId) {
-            http_response_code(401);
-            echo json_encode(['error' => 'Unauthorized']);
-            return;
-        }
-        $notifModel = new Notification($this->db);
-        if ($notifModel->markRead($id)) {
-            http_response_code(200);
-            echo json_encode(['message' => 'Notification marked as read']);
-        } else {
-            http_response_code(400);
-            echo json_encode(['error' => 'Failed to mark notification']);
-        }
+    public function markRead($id): void {
+        $userId = Auth::requireAuth();
+        (new Notification($this->db))->markRead($id, $userId);
+        Response::ok('Okundu olarak işaretlendi.');
+    }
+
+    public function markAllRead(): void {
+        $userId = Auth::requireAuth();
+        (new Notification($this->db))->markAllRead($userId);
+        Response::ok('Tüm bildirimler okundu.');
     }
 }
-?>
