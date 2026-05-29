@@ -45,23 +45,58 @@ export function starsHtml(rating, count) {
   return s;
 }
 
-/* ---------------- toast ---------------- */
-let toastWrap;
-export function toast(message, type = 'info') {
-  if (!toastWrap) {
-    toastWrap = document.createElement('div');
-    toastWrap.className = 'toast-wrap';
-    document.body.appendChild(toastWrap);
-  }
+/* ---------------- toast ----------------
+   Sağ üstte, belirgin. Sayfa geçişlerinde kaybolmaması için sessionStorage'da
+   tutulur ve yeni sayfada kaldığı süreden devam ettirilir. */
+const TOAST_KEY = 'sahaf_toasts';
+const TOAST_DURATION = 4500;
+const TOAST_ICON = { success: '✓', error: '✕', info: 'ℹ' };
+
+function toastQueue() {
+  try { return JSON.parse(sessionStorage.getItem(TOAST_KEY) || '[]'); } catch { return []; }
+}
+function saveQueue(q) {
+  try { sessionStorage.setItem(TOAST_KEY, JSON.stringify(q)); } catch {}
+}
+function toastWrap() {
+  let w = document.querySelector('.toast-wrap');
+  if (!w) { w = document.createElement('div'); w.className = 'toast-wrap'; document.body.appendChild(w); }
+  return w;
+}
+
+function showToastEl(id, message, type, remaining) {
+  if (document.querySelector(`.toast[data-id="${id}"]`)) return;
   const el = document.createElement('div');
   el.className = 'toast toast-' + type;
-  el.innerHTML = `<span>${esc(message)}</span>`;
-  toastWrap.appendChild(el);
+  el.dataset.id = id;
+  el.innerHTML = `<span class="toast-icon">${TOAST_ICON[type] || TOAST_ICON.info}</span>
+    <span class="toast-msg">${esc(message)}</span>
+    <button class="toast-close" aria-label="Kapat">&times;</button>`;
+  toastWrap().appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
-  setTimeout(() => {
+  const dismiss = () => {
     el.classList.remove('show');
     setTimeout(() => el.remove(), 300);
-  }, 3200);
+    saveQueue(toastQueue().filter((t) => t.id !== id));
+  };
+  el.querySelector('.toast-close').addEventListener('click', dismiss);
+  setTimeout(dismiss, Math.max(800, remaining));
+}
+
+export function toast(message, type = 'info') {
+  const id = 't' + Date.now() + Math.round(Math.random() * 1000);
+  const q = toastQueue();
+  q.push({ id, message, type, expires: Date.now() + TOAST_DURATION });
+  saveQueue(q);
+  showToastEl(id, message, type, TOAST_DURATION);
+}
+
+/** Sayfa yüklenince, önceki sayfadan kalan (süresi dolmamış) toast'ları gösterir. */
+export function replayToasts() {
+  const now = Date.now();
+  const q = toastQueue().filter((t) => t.expires > now);
+  saveQueue(q);
+  q.forEach((t) => showToastEl(t.id, t.message, t.type, t.expires - now));
 }
 
 /* ---------------- onay modalı ---------------- */
@@ -245,6 +280,7 @@ export function mountChrome() {
   wireChrome();
   updateBadges();
   refreshCounts();
+  replayToasts();
   window.addEventListener('store:change', updateBadges);
 }
 

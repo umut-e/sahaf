@@ -361,15 +361,29 @@ table.data tr:last-child td { border-bottom: none; }
 .pagination button { padding: .5rem 1rem; }
 
 /* ---------------- toast ---------------- */
-.toast-wrap { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 1000; display: flex; flex-direction: column; gap: .6rem; }
+.toast-wrap {
+  position: fixed; top: calc(var(--header-h) + 14px); right: 1.25rem; z-index: 1200;
+  display: flex; flex-direction: column; gap: .7rem; max-width: min(380px, calc(100vw - 2rem));
+}
 .toast {
-  background: var(--surface); color: var(--text); border: 1px solid var(--border); border-left: 4px solid var(--primary);
-  padding: .85rem 1.2rem; border-radius: var(--radius-sm); box-shadow: var(--shadow-lg);
-  opacity: 0; transform: translateX(40px); transition: opacity .3s, transform .3s; max-width: 340px;
+  display: flex; align-items: center; gap: .75rem;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border); border-left: 5px solid var(--primary);
+  padding: 1rem 1.1rem; border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+  opacity: 0; transform: translateX(120%); transition: opacity .35s, transform .35s cubic-bezier(.2,.8,.2,1);
 }
 .toast.show { opacity: 1; transform: translateX(0); }
+.toast-icon {
+  flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: .95rem; font-weight: 700; color: #fff; background: var(--primary);
+}
+.toast-msg { flex: 1; font-size: .95rem; font-weight: 500; line-height: 1.35; }
+.toast-close { background: none; border: none; color: var(--muted); font-size: 1.4rem; line-height: 1; cursor: pointer; padding: 0; flex-shrink: 0; }
+.toast-close:hover { color: var(--text); }
 .toast-success { border-left-color: var(--success); }
+.toast-success .toast-icon { background: var(--success); }
 .toast-error { border-left-color: var(--danger); }
+.toast-error .toast-icon { background: var(--danger); }
+@media (max-width: 600px) { .toast-wrap { left: 1rem; right: 1rem; top: calc(var(--header-h) + 8px); max-width: none; } }
 
 /* ---------------- modal ---------------- */
 .modal-backdrop {
