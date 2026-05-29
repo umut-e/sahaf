@@ -7,6 +7,7 @@ import {
   mountChrome, openModal, toast, confirmModal, esc, formatPrice, formatDate, qs,
   starsHtml, skeletonCards, emptyState, lightbox, CONDITIONS, STATUSES, refreshNotifBadge,
 } from './ui.js';
+import { fillProvinceSelect, fillDistrictSelect } from './tr-cities.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   mountChrome();
@@ -331,22 +332,50 @@ async function checkout(total) {
     }
     return;
   }
-  let address = '';
-  try { const me = await api('/users/' + currentUser().id); address = [me.address, me.district, me.province].filter(Boolean).join(', '); } catch {}
+  let me = {};
+  try { me = await api('/users/' + currentUser().id); } catch {}
+
   const { el, close } = openModal(`
-    <h2 style="margin-top:0">Teslimat Bilgisi</h2>
-    <div class="field"><label>Teslimat adresi</label><textarea id="addr">${esc(address)}</textarea></div>
+    <h2 style="margin-top:0">Teslimat Bilgileri</h2>
+    <p class="muted small" style="margin-top:-.5rem">Bilgileriniz profilinizden dolduruldu, düzenleyebilirsiniz.</p>
+    <div class="field"><label>Ad Soyad</label><input id="co-name" value="${esc(me.name || currentUser().name || '')}" required></div>
+    <div class="field"><label>Telefon</label><input id="co-phone" value="${esc(me.phone_number || '')}" placeholder="+90..." required></div>
+    <div class="field" style="display:flex;gap:.75rem">
+      <div style="flex:1"><label>İl</label><select id="co-prov"></select></div>
+      <div style="flex:1"><label>İlçe</label><select id="co-dist"></select></div>
+    </div>
+    <div class="field"><label>Açık Adres</label><textarea id="co-addr" placeholder="Mahalle, sokak, no...">${esc(me.address || '')}</textarea></div>
     <div class="summary-row summary-total"><span>Toplam</span><span>${formatPrice(total)}</span></div>
-    <button class="btn btn-primary btn-block" id="place" style="margin-top:1rem">Siparişi Onayla</button>`);
+    <div class="field-error" id="co-err"></div>
+    <button class="btn btn-primary btn-block" id="place" style="margin-top:.5rem">Siparişi Onayla</button>`, { wide: true });
+
+  const prov = el.querySelector('#co-prov');
+  const dist = el.querySelector('#co-dist');
+  fillProvinceSelect(prov, me.province || '');
+  fillDistrictSelect(dist, me.province || '', me.district || '');
+  prov.addEventListener('change', () => fillDistrictSelect(dist, prov.value));
+
   el.querySelector('#place').addEventListener('click', async () => {
+    const name = el.querySelector('#co-name').value.trim();
+    const phone = el.querySelector('#co-phone').value.trim();
+    const province = prov.value;
+    const district = dist.value;
+    const addr = el.querySelector('#co-addr').value.trim();
+    const err = el.querySelector('#co-err');
+    if (!name || !phone || !province || !district || !addr) {
+      err.textContent = 'Lütfen tüm teslimat alanlarını doldurun.';
+      return;
+    }
+    // Tek metin alanına derli toplu adres (mevcut sipariş biçimiyle uyumlu)
+    const fullAddress = `${name} - Tel: ${phone} | ${province} / ${district} | ${addr}`;
     try {
-      const res = await api('/orders', { method: 'POST', body: { address: el.querySelector('#addr').value.trim() } });
+      const res = await api('/orders', { method: 'POST', body: { address: fullAddress } });
       store.clearLocalCart();
       await store.refreshCounts();
       close();
       toast('Siparişiniz alındı!', 'success');
       setTimeout(() => (location.href = '/order.html?id=' + res.order_id), 700);
-    } catch (e) { toast(e.message, 'error'); }
+    } catch (e) { err.textContent = e.message; }
   });
 }
 
@@ -451,13 +480,22 @@ async function initProfile() {
         <h2 style="margin-top:0">Bilgilerim</h2>
         <div class="field"><label>Ad Soyad</label><input name="name" value="${esc(me.name)}" required></div>
         <div class="field"><label>Telefon</label><input name="phone_number" value="${esc(me.phone_number || '')}" placeholder="+90..."></div>
-        <div class="field"><label>İl</label><input name="province" value="${esc(me.province || '')}"></div>
-        <div class="field"><label>İlçe</label><input name="district" value="${esc(me.district || '')}"></div>
-        <div class="field"><label>Adres</label><textarea name="address">${esc(me.address || '')}</textarea></div>
+        <div class="field" style="display:flex;gap:.75rem">
+          <div style="flex:1"><label>İl</label><select name="province" id="pf-prov"></select></div>
+          <div style="flex:1"><label>İlçe</label><select name="district" id="pf-dist"></select></div>
+        </div>
+        <div class="field"><label>Açık Adres</label><textarea name="address" placeholder="Mahalle, sokak, no...">${esc(me.address || '')}</textarea></div>
         <div class="field"><label>Profil fotoğrafı</label><input type="file" name="profile_photo" accept="image/*"></div>
         <button class="btn btn-primary" type="submit">Kaydet</button>
       </form>
     </div>`;
+
+  const provEl = document.getElementById('pf-prov');
+  const distEl = document.getElementById('pf-dist');
+  fillProvinceSelect(provEl, me.province || '');
+  fillDistrictSelect(distEl, me.province || '', me.district || '');
+  provEl.addEventListener('change', () => fillDistrictSelect(distEl, provEl.value));
+
   document.getElementById('profile-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);

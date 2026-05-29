@@ -182,15 +182,26 @@ textarea { resize: vertical; min-height: 90px; }
 
 /* ---------------- hero (anasayfa) ---------------- */
 .hero {
-  background: linear-gradient(135deg, var(--primary-soft), transparent);
+  position: relative; overflow: hidden;
+  background:
+    radial-gradient(120% 140% at 0% 0%, var(--primary-soft), transparent 55%),
+    radial-gradient(120% 140% at 100% 100%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 55%),
+    var(--surface);
   border: 1px solid var(--border); border-radius: var(--radius-lg);
-  padding: 2.5rem 2rem; margin-bottom: 1.75rem; text-align: center;
+  padding: 3rem 2rem; margin-bottom: 1.75rem; text-align: center;
 }
-.hero h1 { font-size: 2.4rem; margin: 0 0 .5rem; }
-.hero p { color: var(--muted); margin: 0; font-size: 1.05rem; }
+.hero::after {
+  content: '📚'; position: absolute; right: -10px; bottom: -20px; font-size: 8rem; opacity: .07; transform: rotate(-12deg);
+}
+.hero h1 { font-size: 2.6rem; margin: 0 0 .6rem; line-height: 1.15; }
+.hero p { color: var(--muted); margin: 0; font-size: 1.1rem; }
 
 /* ---------------- filtre çubuğu ---------------- */
-.filters { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+.filters {
+  display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.25rem;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: 1rem; box-shadow: var(--shadow-sm);
+}
 .filters .search { flex: 1; min-width: 220px; }
 .filters select { width: auto; min-width: 150px; }
 .chips { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
@@ -208,7 +219,13 @@ textarea { resize: vertical; min-height: 90px; }
   border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column;
   box-shadow: var(--shadow-sm); transition: transform .2s, box-shadow .2s; cursor: pointer;
 }
+.book-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  transform: scaleX(0); transform-origin: left; transition: transform .3s; z-index: 2;
+}
 .book-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+.book-card:hover::before { transform: scaleX(1); }
 .book-cover { position: relative; aspect-ratio: 3 / 4; background: var(--surface-2); overflow: hidden; }
 .book-cover img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
 .book-card:hover .book-cover img { transform: scale(1.05); }

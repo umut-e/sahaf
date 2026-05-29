@@ -5,6 +5,7 @@ import {
   mountChrome, openModal, toast, confirmModal, esc, formatPrice, formatDate,
   skeletonCards, emptyState, STATUSES, CONDITIONS,
 } from './ui.js';
+import { fillProvinceSelect, fillDistrictSelect } from './tr-cities.js';
 
 let categoriesCache = [];
 
@@ -280,14 +281,56 @@ async function initUsers() {
             <td><span class="tag">${u.role === 'admin' ? 'Yönetici' : 'Üye'}</span></td>
             <td>${u.order_count ?? 0}</td>
             <td>${formatDate(u.created_at)}</td>
-            <td><button class="btn btn-danger btn-sm" data-del="${u.id}">Sil</button></td>
+            <td><div class="row-actions">
+              <button class="btn btn-ghost btn-sm" data-edit="${u.id}">Düzenle</button>
+              <button class="btn btn-danger btn-sm" data-del="${u.id}">Sil</button>
+            </div></td>
           </tr>`).join('')}</tbody>
       </table></div>`;
+    root.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => userForm(users.find((x) => x.id == b.dataset.edit))));
     root.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
       if (!(await confirmModal('Bu kullanıcıyı silmek istediğinize emin misiniz? Sipariş ve yorumları da silinir.', { danger: true, okText: 'Sil' }))) return;
       try { await api('/users/' + b.dataset.del, { method: 'DELETE' }); toast('Kullanıcı silindi.'); render(); }
       catch (e) { toast(e.message, 'error'); }
     }));
+  }
+
+  async function userForm(u) {
+    // Tam bilgi (adres/il/ilçe) için tekil kullanıcıyı çek
+    let full = u;
+    try { full = await api('/users/' + u.id); } catch {}
+    const { el, close } = openModal(`
+      <h2 style="margin-top:0">Kullanıcıyı Düzenle</h2>
+      <form id="uf">
+        <div class="field"><label>Ad Soyad</label><input name="name" value="${esc(full.name || '')}" required></div>
+        <div class="field" style="display:flex;gap:.75rem">
+          <div style="flex:1"><label>Telefon</label><input name="phone_number" value="${esc(full.phone_number || '')}"></div>
+          <div style="flex:1"><label>Rol</label><select name="role">
+            <option value="user" ${full.role === 'user' ? 'selected' : ''}>Üye</option>
+            <option value="admin" ${full.role === 'admin' ? 'selected' : ''}>Yönetici</option>
+          </select></div>
+        </div>
+        <div class="field" style="display:flex;gap:.75rem">
+          <div style="flex:1"><label>İl</label><select name="province" id="uf-prov"></select></div>
+          <div style="flex:1"><label>İlçe</label><select name="district" id="uf-dist"></select></div>
+        </div>
+        <div class="field"><label>Açık Adres</label><textarea name="address">${esc(full.address || '')}</textarea></div>
+        <div class="field-error" id="uf-err"></div>
+        <button class="btn btn-primary btn-block" type="submit">Kaydet</button>
+      </form>`, { wide: true });
+    const prov = el.querySelector('#uf-prov');
+    const dist = el.querySelector('#uf-dist');
+    fillProvinceSelect(prov, full.province || '');
+    fillDistrictSelect(dist, full.province || '', full.district || '');
+    prov.addEventListener('change', () => fillDistrictSelect(dist, prov.value));
+    el.querySelector('#uf').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      try {
+        await api('/users/' + u.id, { method: 'PUT', body: Object.fromEntries(fd) });
+        toast('Kullanıcı güncellendi.', 'success'); close(); render();
+      } catch (err) { el.querySelector('#uf-err').textContent = err.message; }
+    });
   }
 
   let t;
