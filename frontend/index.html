@@ -32,42 +32,27 @@
             <p>Aradığınız o nadir kitabı, en uygun fiyatlarla binlerce seçenek arasından hemen bulun. Sahaf'ın ayrıcalıklı dünyasına hoş geldiniz.</p>
         </section>
         <section id="search-section">
-            <input type="text" id="search-input" placeholder="Kitap veya yazar ara...">
-            <select id="category-filter">
+            <select id="category-filter" class="custom-select">
                 <option value="">Tüm Kategoriler</option>
             </select>
-            <select id="sort-filter">
+            <input type="text" id="search-input" placeholder="Kitap veya Yazar Ara...">
+            <select id="sort-filter" class="custom-select">
                 <option value="newest">Son Eklenen</option>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                <option value="oldest">İlk Eklenen</option>
+                <option value="price_asc">Fiyat: Ucuzdan Pahalıya</option>
+                <option value="price_desc">Fiyat: Pahalıdan Ucuza</option>
+                <option value="condition_asc">Durum: En İyiden En Kötüye</option>
+                <option value="condition_desc">Durum: En Kötüden En İyiye</option>
+                <option value="rating_desc">Puan: Yüksekten Düşüğe</option>
+                <option value="rating_asc">Puan: Düşükten Yükseğe</option>
+            </select>
+            <button id="search-button">Ara</button>
+        </section>
+        
+        <div id="home-admin-actions" style="display:none; max-width:1200px; margin: 1rem auto; padding: 0 20px; text-align: right; position: relative; z-index: 1;">
+            <button id="home-add-book-btn" class="btn-primary" style="background:var(--primary); color:#fff; border:none; padding:0.5rem 1rem; border-radius:var(--radius-md); cursor:pointer; font-weight:600;">+ Yeni Kitap Ekle</button>
+        </div>
+        <script>
         document.addEventListener('DOMContentLoaded', () => {
             loadCategories();
             setTimeout(() => {
@@ -77,6 +62,14 @@
             // theme toggle
             document.getElementById('toggle-theme').addEventListener('click', toggleTheme);
             document.getElementById('search-button').addEventListener('click', () => {
+                window.currentPage = 1;
+                loadBooks();
+            });
+            document.getElementById('category-filter')?.addEventListener('change', () => {
+                window.currentPage = 1;
+                loadBooks();
+            });
+            document.getElementById('sort-filter')?.addEventListener('change', () => {
                 window.currentPage = 1;
                 loadBooks();
             });

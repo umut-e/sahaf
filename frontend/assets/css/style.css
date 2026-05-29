@@ -450,3 +450,91 @@ form {
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     border: 3px solid var(--bg-color);
 }
+.out-of-stock-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: var(--radius-md);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+/* Custom Select Styles */
+.custom-select-wrapper {
+    position: relative;
+    user-select: none;
+    flex: 1; 
+}
+
+.custom-select-trigger {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background-color: var(--header-bg);
+    border: 1px solid var(--header-border);
+    border-radius: var(--radius-pill);
+    color: var(--header-text);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    height: 100%;
+    white-space: nowrap;
+}
+
+.custom-select-trigger:hover {
+    border-color: var(--primary);
+}
+
+.custom-select-trigger svg {
+    transition: transform 0.15s ease;
+}
+
+.custom-select-trigger.open svg {
+    transform: rotate(180deg);
+}
+
+.custom-select-options {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    min-width: 100%;
+    width: max-content;
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.15s ease;
+    z-index: 9999;
+    overflow: hidden;
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.custom-select-options.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.custom-select-option {
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+}
+
+.custom-select-option:hover, .custom-select-option.selected {
+    background-color: var(--primary);
+    color: #fff;
+}

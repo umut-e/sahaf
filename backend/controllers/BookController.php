@@ -18,14 +18,22 @@ class BookController {
 
     // List books with optional filters and pagination
     public function list() {
+        $page = $_GET['page'] ?? 1;
+        $limit = $_GET['limit'] ?? 10;
+        $search = $_GET['search'] ?? null;
+        $author = $_GET['author'] ?? null;
+        $category_id = $_GET['category_id'] ?? null;
+        $condition = $_GET['condition'] ?? null;
+        $sort = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
+        
         $params = [
-            'page' => $_GET['page'] ?? 1,
-            'limit' => $_GET['limit'] ?? 10,
-            'search' => $_GET['search'] ?? null,
-            'author' => $_GET['author'] ?? null,
-            'category_id' => $_GET['category_id'] ?? null,
-            'condition' => $_GET['condition'] ?? null,
-            'sort' => $_GET['sort'] ?? null,
+            'page' => $page,
+            'limit' => $limit,
+            'search' => $search,
+            'author' => $author,
+            'category_id' => $category_id,
+            'condition' => $condition,
+            'sort' => $sort
         ];
         $bookModel = new Book($this->db);
         $result = $bookModel->list($params);
