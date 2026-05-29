@@ -28,6 +28,16 @@ export async function openBookForm(book, onSaved) {
   const { el, close } = openModal(`
     <h2 style="margin-top:0">${book ? 'Kitabı Düzenle' : 'Yeni Kitap Ekle'}</h2>
     <form id="bf">
+      <div class="field">
+        <label>Kapak görseli</label>
+        <div class="cover-editor">
+          <div class="cover-preview" id="cover-preview"></div>
+          <div class="cover-controls">
+            <input type="file" name="images" accept="image/*" id="cover-input">
+            <span class="muted small" id="cover-hint"></span>
+          </div>
+        </div>
+      </div>
       <div class="field"><label>Başlık</label><input name="title" value="${esc(full?.title || '')}" required></div>
       <div class="field"><label>Yazar</label><input name="author" value="${esc(full?.author || '')}" required></div>
       <div class="field" style="display:flex;gap:.75rem">
@@ -39,49 +49,54 @@ export async function openBookForm(book, onSaved) {
         <div style="flex:1"><label>Kategori</label><select name="category_id"><option value="">—</option>${cats.map((c) => `<option value="${c.id}" ${full?.category_id == c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
       </div>
       <div class="field"><label>Açıklama</label><textarea name="description">${esc(full?.description || '')}</textarea></div>
-      <div class="field">
-        <label>Kapak görselleri</label>
-        ${book ? '<div class="img-manager" id="img-manager"></div>' : ''}
-        <input type="file" name="images" accept="image/*" multiple>
-        <span class="muted small">${book ? 'Yeni görsel eklenir; mevcutları yukarıdan kaldırabilirsiniz.' : 'Birden fazla görsel seçebilirsiniz.'}</span>
-      </div>
       <div class="field-error" id="bf-err"></div>
       <button class="btn btn-primary btn-block" type="submit">${book ? 'Kaydet' : 'Ekle'}</button>
     </form>`, { wide: true });
 
-  // Düzenlemede mevcut görselleri kaldırma butonlarıyla göster
-  if (book) {
-    const renderThumbs = () => {
-      const box = el.querySelector('#img-manager');
-      if (!box) return;
-      const imgs = full.images || [];
-      box.innerHTML = imgs.length
-        ? imgs.map((im) => `
-            <div class="img-thumb">
-              <img src="${imageUrl(im.image_path)}" alt="">
-              <button type="button" class="img-remove" data-img="${im.id}" aria-label="Görseli kaldır" title="Kaldır">&times;</button>
-            </div>`).join('')
-        : '<p class="muted small">Henüz görsel yok.</p>';
-      box.querySelectorAll('.img-remove').forEach((b) => b.addEventListener('click', async () => {
-        if (!(await confirmModal('Bu görseli kaldırmak istediğinize emin misiniz?', { danger: true, okText: 'Kaldır' }))) return;
+  // Tek kapak görseli yönetimi: mevcut görsel önizlemesi + kaldır; yeni seçince güncelle
+  const preview = el.querySelector('#cover-preview');
+  const fileInput = el.querySelector('#cover-input');
+  const hint = el.querySelector('#cover-hint');
+  const cover = () => (full?.images && full.images[0]) || null;
+
+  const renderCover = () => {
+    const c = cover();
+    if (c) {
+      preview.innerHTML = `<div class="img-thumb">
+          <img src="${imageUrl(c.image_path)}" alt="">
+          <button type="button" class="img-remove" aria-label="Görseli kaldır" title="Kaldır">&times;</button>
+        </div>`;
+      hint.textContent = 'Yeni görsel seçerseniz mevcut kapak güncellenir.';
+      preview.querySelector('.img-remove').addEventListener('click', async () => {
+        if (!(await confirmModal('Kapak görselini kaldırmak istediğinize emin misiniz?', { danger: true, okText: 'Kaldır' }))) return;
         try {
-          await api(`/books/${book.id}/images/${b.dataset.img}`, { method: 'DELETE' });
-          full.images = (full.images || []).filter((x) => String(x.id) !== String(b.dataset.img));
-          renderThumbs();
+          await api(`/books/${book.id}/images/${c.id}`, { method: 'DELETE' });
+          full.images = [];
+          renderCover();
           toast('Görsel kaldırıldı.', 'success');
           if (onSaved) onSaved();
         } catch (e) { toast(e.message, 'error'); }
-      }));
-    };
-    renderThumbs();
-  }
+      });
+    } else {
+      preview.innerHTML = '<div class="cover-empty">📖</div>';
+      hint.textContent = book ? 'Bu kitabın görseli yok. Bir görsel seçip ekleyin.' : 'Bir kapak görseli seçin.';
+    }
+  };
+  renderCover();
+  // Yeni dosya seçilince anlık önizleme
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files[0];
+    if (!f) return;
+    preview.innerHTML = `<div class="img-thumb"><img src="${URL.createObjectURL(f)}" alt=""></div>`;
+    hint.textContent = cover() ? 'Kaydedince mevcut kapak bununla değiştirilecek.' : 'Kaydedince eklenecek.';
+  });
 
   el.querySelector('#bf').addEventListener('submit', async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
-    const files = fd.getAll('images').filter((f) => f.size);
+    const file = fd.get('images');
     fd.delete('images');
-    files.forEach((f) => fd.append('images[]', f));
+    if (file && file.size) fd.append('images[]', file);
     try {
       if (book && book.id) {
         fd.append('_method', 'PUT');

@@ -147,6 +147,13 @@ class Book {
     }
 
     public function deleteImages($bookId): bool {
+        // Önce diskteki dosyaları temizle, sonra satırları sil.
+        foreach ($this->getImagePaths($bookId) as $path) {
+            $file = __DIR__ . '/../' . $path;
+            if (is_file($file)) {
+                @unlink($file);
+            }
+        }
         return $this->db->prepare("DELETE FROM book_images WHERE book_id = :id")->execute([':id' => $bookId]);
     }
 

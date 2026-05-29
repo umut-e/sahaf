@@ -68,9 +68,10 @@ class BookController {
         $data = Request::body();
         $model->update($id, $data);
 
-        // Yeni görseller yüklendiyse mevcutlara EKLE (silme ayrı uçtan yapılır).
+        // Tek kapak görseli modeli: yeni görsel yüklendiyse mevcutu değiştir.
         $images = Uploader::handleImages('images');
         if (!empty($images)) {
+            $model->deleteImages($id);
             $model->saveImages($id, $images);
         }
         Response::ok('Kitap güncellendi.');
