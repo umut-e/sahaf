@@ -93,6 +93,11 @@ class OrderController {
         $reason = $data['cancellation_reason'] ?? null;
         $model->updateStatus($id, $status, $reason);
 
+        // İptal edildiyse (ve daha önce iptal değilse) stoğu geri yükle.
+        if ($status === 'cancelled' && $order['status'] !== 'cancelled') {
+            $model->restock($id);
+        }
+
         // Sipariş sahibine bildirim
         $labels = [
             'pending' => 'beklemede', 'processing' => 'hazırlanıyor', 'shipped' => 'kargolandı',

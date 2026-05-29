@@ -148,4 +148,13 @@ class Order {
         );
         return $stmt->execute([':st' => $status, ':r' => ($status === 'cancelled' ? $reason : null), ':id' => $id]);
     }
+
+    /** İptal edilen siparişteki ürünlerin stoğunu geri ekler. */
+    public function restock($id): void {
+        $stmt = $this->db->prepare(
+            "UPDATE books b JOIN order_items oi ON oi.book_id = b.id
+             SET b.stock = b.stock + oi.quantity WHERE oi.order_id = :oid"
+        );
+        $stmt->execute([':oid' => $id]);
+    }
 }
