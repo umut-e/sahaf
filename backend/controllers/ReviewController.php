@@ -13,11 +13,14 @@ class ReviewController {
 
     public function list($bookId): void {
         $reviews = (new Review($this->db))->getByBook($bookId, Auth::userId());
-        // EXISTS/bool alanlarını JSON için normalize et
+        // EXISTS/bool alanlarını JSON için normalize et; anonim isimleri maskele
         foreach ($reviews as &$r) {
             $r['like_count']  = (int) $r['like_count'];
             $r['liked_by_me'] = (bool) $r['liked_by_me'];
             $r['is_anonymous'] = (bool) $r['is_anonymous'];
+            if ($r['is_anonymous']) {
+                $r['user_name'] = self::maskName($r['user_name']);
+            }
         }
         unset($r);
         Response::json($reviews, 200);
@@ -52,5 +55,16 @@ class ReviewController {
         $model = new Review($this->db);
         $model->unlike($reviewId, $userId);
         Response::json(['message' => 'Beğeni kaldırıldı', 'like_count' => $model->likeCount($reviewId)], 200);
+    }
+
+    /** "Umut Efe Doğan" -> "U*** E** D****" (her kelimenin ilk harfi + yıldız). */
+    private static function maskName(string $name): string {
+        $parts = preg_split('/\s+/', trim($name));
+        $masked = array_map(function ($w) {
+            $len = mb_strlen($w, 'UTF-8');
+            if ($len <= 1) return $w;
+            return mb_substr($w, 0, 1, 'UTF-8') . str_repeat('*', $len - 1);
+        }, $parts);
+        return implode(' ', $masked);
     }
 }

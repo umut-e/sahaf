@@ -14,7 +14,7 @@ class Review {
     /** Bir kitabın yorumları. Giriş yapan kullanıcı için beğeni durumu da döner. */
     public function getByBook($bookId, $viewerId = null): array {
         $sql = "SELECT r.id, r.rating, r.comment, r.created_at, r.is_anonymous,
-                       CASE WHEN r.is_anonymous = 1 THEN 'Anonim' ELSE u.name END AS user_name,
+                       u.name AS user_name,
                        (SELECT COUNT(*) FROM review_likes WHERE review_id = r.id) AS like_count,
                        EXISTS(SELECT 1 FROM review_likes WHERE review_id = r.id AND user_id = :viewer) AS liked_by_me
                 FROM reviews r
