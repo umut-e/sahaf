@@ -44,7 +44,7 @@ async function initDashboard() {
     <div class="dash-cols">
       <div class="panel">
         <h3 style="margin-top:0">Sipariş Durumları</h3>
-        ${Object.keys(STATUSES).map((k) => `
+        ${['pending', 'completed', 'cancelled'].map((k) => `
           <div class="bar-row">
             <span class="bar-label">${STATUSES[k]}</span>
             <div class="bar-track"><div class="bar-fill" style="width:${((s.by_status[k] || 0) / maxStatus) * 100}%"></div></div>
@@ -230,21 +230,32 @@ async function initOrders() {
     if (!orders.length) { root.innerHTML = emptyState('Sipariş bulunamadı'); return; }
     root.innerHTML = `
       <div class="table-wrap"><table class="data">
-        <thead><tr><th>#</th><th>Müşteri</th><th>Tarih</th><th>Tutar</th><th>Durum</th></tr></thead>
+        <thead><tr><th>#</th><th>Müşteri</th><th>Tarih</th><th>Tutar</th><th>Durum / İşlem</th></tr></thead>
         <tbody>${orders.map((o) => `
           <tr>
             <td><a href="/order.html?id=${o.id}">#${o.id}</a></td>
             <td>${esc(o.user_name || '—')}<br><span class="muted small">${esc(o.user_email || '')}</span></td>
             <td>${formatDate(o.created_at)}</td>
             <td class="price">${formatPrice(o.total_price)}</td>
-            <td><select data-order="${o.id}" class="status-select">
-              ${Object.keys(STATUSES).map((k) => `<option value="${k}" ${o.status === k ? 'selected' : ''}>${STATUSES[k]}</option>`).join('')}
-            </select></td>
+            <td>
+              <span class="status-badge status-${o.status}">${STATUSES[o.status] || o.status}</span>
+              ${o.status === 'pending' ? `<div class="row-actions" style="margin-top:.5rem">
+                <button class="btn btn-primary btn-sm" data-complete="${o.id}">Onayla ve Gönder</button>
+                <button class="btn btn-danger btn-sm" data-cancel="${o.id}">İptal Et</button>
+              </div>` : ''}
+            </td>
           </tr>`).join('')}</tbody>
       </table></div>`;
-    root.querySelectorAll('.status-select').forEach((sel) => sel.addEventListener('change', async () => {
-      try { await api('/orders/' + sel.dataset.order, { method: 'PUT', body: { status: sel.value } }); toast('Durum güncellendi.', 'success'); }
-      catch (e) { toast(e.message, 'error'); render(); }
+
+    root.querySelectorAll('[data-complete]').forEach((b) => b.addEventListener('click', async () => {
+      if (!(await confirmModal(`#${b.dataset.complete} numaralı sipariş "Tamamlandı" olarak işaretlenip müşteriye gönderilecek. Onaylıyor musunuz?`, { okText: 'Onayla ve Gönder' }))) return;
+      try { await api('/orders/' + b.dataset.complete, { method: 'PUT', body: { status: 'completed' } }); toast('Sipariş tamamlandı.', 'success'); render(); }
+      catch (e) { toast(e.message, 'error'); }
+    }));
+    root.querySelectorAll('[data-cancel]').forEach((b) => b.addEventListener('click', async () => {
+      if (!(await confirmModal(`#${b.dataset.cancel} numaralı sipariş iptal edilecek ve ürünler stoğa geri eklenecek. Emin misiniz?`, { okText: 'İptal Et', danger: true }))) return;
+      try { await api('/orders/' + b.dataset.cancel, { method: 'PUT', body: { status: 'cancelled', cancellation_reason: 'Yönetici tarafından iptal edildi' } }); toast('Sipariş iptal edildi.'); render(); }
+      catch (e) { toast(e.message, 'error'); }
     }));
   }
 
