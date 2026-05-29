@@ -1,0 +1,297 @@
+// Yönetim paneli sayfaları. Tümü admin yetkisi gerektirir.
+
+import { api, isAdmin, isLoggedIn, imageUrl } from './api.js';
+import {
+  mountChrome, openModal, toast, confirmModal, esc, formatPrice, formatDate,
+  skeletonCards, emptyState, STATUSES, CONDITIONS,
+} from './ui.js';
+
+let categoriesCache = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+  mountChrome();
+  if (!isLoggedIn() || !isAdmin()) {
+    document.querySelector('main').innerHTML = emptyState('Erişim reddedildi', 'Bu sayfa yalnızca yöneticiler içindir.', '<a class="btn btn-primary" href="/index.html">Anasayfa</a>', '🔒');
+    return;
+  }
+  const page = document.body.dataset.page;
+  ({
+    'admin-dashboard': initDashboard,
+    'admin-books': initBooks,
+    'admin-categories': initCategories,
+    'admin-orders': initOrders,
+    'admin-users': initUsers,
+  }[page] || (() => {}))();
+});
+
+/* ===================== DASHBOARD ===================== */
+async function initDashboard() {
+  const root = document.getElementById('dash-root');
+  let s;
+  try { s = await api('/stats'); } catch { root.innerHTML = emptyState('İstatistikler yüklenemedi'); return; }
+
+  const cards = [
+    ['Kitaplar', s.totals.books], ['Kullanıcılar', s.totals.users], ['Siparişler', s.totals.orders],
+    ['Kategoriler', s.totals.categories], ['Yorumlar', s.totals.reviews],
+  ];
+  const maxStatus = Math.max(1, ...Object.values(s.by_status));
+  root.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-value">${formatPrice(s.revenue)}</div><div class="stat-label">Toplam Ciro</div></div>
+      ${cards.map(([l, v]) => `<div class="stat-card"><div class="stat-value">${v}</div><div class="stat-label">${l}</div></div>`).join('')}
+    </div>
+    <div class="dash-cols">
+      <div class="panel">
+        <h3 style="margin-top:0">Sipariş Durumları</h3>
+        ${Object.keys(STATUSES).map((k) => `
+          <div class="bar-row">
+            <span class="bar-label">${STATUSES[k]}</span>
+            <div class="bar-track"><div class="bar-fill" style="width:${((s.by_status[k] || 0) / maxStatus) * 100}%"></div></div>
+            <span>${s.by_status[k] || 0}</span>
+          </div>`).join('')}
+      </div>
+      <div class="panel">
+        <h3 style="margin-top:0">En Çok Satanlar</h3>
+        ${s.top_books.length ? s.top_books.map((b) => `<div class="bar-row"><span style="flex:1">${esc(b.title)}</span><span class="tag">${b.sold} satış</span></div>`).join('') : '<p class="muted">Veri yok.</p>'}
+      </div>
+    </div>
+    <div class="dash-cols" style="margin-top:1.25rem">
+      <div class="panel">
+        <h3 style="margin-top:0">Düşük Stok</h3>
+        ${s.low_stock.length ? s.low_stock.map((b) => `<div class="bar-row"><span style="flex:1">${esc(b.title)}</span><span class="tag" style="${b.stock == 0 ? 'background:var(--danger);color:#fff' : ''}">${b.stock} adet</span></div>`).join('') : '<p class="muted">Tüm kitaplar yeterli stokta.</p>'}
+      </div>
+      <div class="panel">
+        <h3 style="margin-top:0">Son Siparişler</h3>
+        ${s.recent.length ? s.recent.map((o) => `
+          <div class="bar-row">
+            <a href="/order.html?id=${o.id}" style="flex:1">#${o.id} · ${esc(o.user_name || '—')}</a>
+            <span class="status-badge status-${o.status}">${STATUSES[o.status] || o.status}</span>
+            <span class="price">${formatPrice(o.total_price)}</span>
+          </div>`).join('') : '<p class="muted">Henüz sipariş yok.</p>'}
+      </div>
+    </div>`;
+}
+
+/* ===================== KİTAPLAR ===================== */
+async function loadCategories() {
+  if (!categoriesCache.length) {
+    try { categoriesCache = await api('/categories'); } catch { categoriesCache = []; }
+  }
+  return categoriesCache;
+}
+
+async function initBooks() {
+  const root = document.getElementById('admin-books-root');
+  document.getElementById('add-book-btn')?.addEventListener('click', () => bookForm());
+
+  async function render() {
+    root.innerHTML = skeletonCards(4);
+    let res;
+    try { res = await api('/books?limit=50'); } catch { root.innerHTML = emptyState('Kitaplar yüklenemedi'); return; }
+    const books = res.data;
+    root.innerHTML = `
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th></th><th>Başlık</th><th>Yazar</th><th>Kategori</th><th>Fiyat</th><th>Stok</th><th>İşlem</th></tr></thead>
+          <tbody>
+            ${books.map((b) => `
+              <tr>
+                <td>${b.primary_image ? `<img class="line-thumb" style="width:36px;height:48px" src="${imageUrl(b.primary_image)}" alt="">` : '📖'}</td>
+                <td>${esc(b.title)}</td>
+                <td>${esc(b.author)}</td>
+                <td>${esc(b.category_name || '—')}</td>
+                <td>${formatPrice(b.price)}</td>
+                <td>${b.stock}</td>
+                <td><div class="row-actions">
+                  <button class="btn btn-ghost btn-sm" data-edit="${b.id}">Düzenle</button>
+                  <button class="btn btn-danger btn-sm" data-del="${b.id}">Sil</button>
+                </div></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    root.querySelectorAll('[data-edit]').forEach((btn) => btn.addEventListener('click', () => bookForm(books.find((x) => x.id == btn.dataset.edit))));
+    root.querySelectorAll('[data-del]').forEach((btn) => btn.addEventListener('click', async () => {
+      if (!(await confirmModal('Bu kitabı silmek istediğinize emin misiniz?', { danger: true, okText: 'Sil' }))) return;
+      try { await api('/books/' + btn.dataset.del, { method: 'DELETE' }); toast('Kitap silindi.'); render(); }
+      catch (e) { toast(e.message, 'error'); }
+    }));
+  }
+
+  async function bookForm(book = null) {
+    const cats = await loadCategories();
+    const { el, close } = openModal(`
+      <h2 style="margin-top:0">${book ? 'Kitabı Düzenle' : 'Yeni Kitap Ekle'}</h2>
+      <form id="bf">
+        <div class="field"><label>Başlık</label><input name="title" value="${esc(book?.title || '')}" required></div>
+        <div class="field"><label>Yazar</label><input name="author" value="${esc(book?.author || '')}" required></div>
+        <div class="field" style="display:flex;gap:.75rem">
+          <div style="flex:1"><label>Fiyat (₺)</label><input name="price" type="number" step="0.01" value="${esc(book?.price || '')}" required></div>
+          <div style="flex:1"><label>Stok</label><input name="stock" type="number" value="${esc(book?.stock ?? 0)}" required></div>
+        </div>
+        <div class="field" style="display:flex;gap:.75rem">
+          <div style="flex:1"><label>Durum</label><select name="condition">${Object.entries(CONDITIONS).map(([k, v]) => `<option value="${k}" ${book?.condition === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+          <div style="flex:1"><label>Kategori</label><select name="category_id"><option value="">—</option>${cats.map((c) => `<option value="${c.id}" ${book?.category_id == c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
+        </div>
+        <div class="field"><label>Açıklama</label><textarea name="description">${esc(book?.description || '')}</textarea></div>
+        <div class="field"><label>Görseller ${book ? '(yeni yüklenirse mevcutların yerini alır)' : ''}</label><input type="file" name="images" accept="image/*" multiple></div>
+        <div class="field-error" id="bf-err"></div>
+        <button class="btn btn-primary btn-block" type="submit">${book ? 'Kaydet' : 'Ekle'}</button>
+      </form>`, { wide: true });
+
+    el.querySelector('#bf').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const files = fd.getAll('images').filter((f) => f.size);
+      fd.delete('images');
+      files.forEach((f) => fd.append('images[]', f));
+      try {
+        if (book) {
+          fd.append('_method', 'PUT');
+          await api('/books/' + book.id, { method: 'POST', form: fd });
+          toast('Kitap güncellendi.', 'success');
+        } else {
+          await api('/books', { method: 'POST', form: fd });
+          toast('Kitap eklendi.', 'success');
+        }
+        close(); render();
+      } catch (err) { el.querySelector('#bf-err').textContent = err.message; }
+    });
+  }
+
+  render();
+}
+
+/* ===================== KATEGORİLER ===================== */
+async function initCategories() {
+  const root = document.getElementById('admin-cats-root');
+  document.getElementById('add-cat-btn')?.addEventListener('click', () => catForm());
+
+  async function render() {
+    let cats;
+    try { cats = await api('/categories'); categoriesCache = cats; } catch { root.innerHTML = emptyState('Yüklenemedi'); return; }
+    root.innerHTML = `
+      <div class="table-wrap"><table class="data">
+        <thead><tr><th>Kategori</th><th>Kitap sayısı</th><th>İşlem</th></tr></thead>
+        <tbody>${cats.map((c) => `
+          <tr><td>${esc(c.name)}</td><td>${c.book_count}</td>
+          <td><div class="row-actions">
+            <button class="btn btn-ghost btn-sm" data-edit="${c.id}" data-name="${esc(c.name)}">Düzenle</button>
+            <button class="btn btn-danger btn-sm" data-del="${c.id}">Sil</button>
+          </div></td></tr>`).join('')}</tbody>
+      </table></div>`;
+    root.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => catForm({ id: b.dataset.edit, name: b.dataset.name })));
+    root.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
+      if (!(await confirmModal('Kategoriyi silmek istediğinize emin misiniz? Kitaplar kategorisiz kalır.', { danger: true, okText: 'Sil' }))) return;
+      try { await api('/categories/' + b.dataset.del, { method: 'DELETE' }); toast('Kategori silindi.'); render(); }
+      catch (e) { toast(e.message, 'error'); }
+    }));
+  }
+
+  function catForm(cat = null) {
+    const { el, close } = openModal(`
+      <h2 style="margin-top:0">${cat ? 'Kategoriyi Düzenle' : 'Yeni Kategori'}</h2>
+      <form id="cf">
+        <div class="field"><label>Ad</label><input name="name" value="${esc(cat?.name || '')}" required></div>
+        <div class="field-error" id="cf-err"></div>
+        <button class="btn btn-primary btn-block" type="submit">Kaydet</button>
+      </form>`);
+    el.querySelector('#cf').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = new FormData(e.target).get('name').trim();
+      try {
+        if (cat) await api('/categories/' + cat.id, { method: 'PUT', body: { name } });
+        else await api('/categories', { method: 'POST', body: { name } });
+        toast('Kaydedildi.', 'success'); close(); render();
+      } catch (err) { el.querySelector('#cf-err').textContent = err.message; }
+    });
+  }
+
+  render();
+}
+
+/* ===================== SİPARİŞLER ===================== */
+async function initOrders() {
+  const root = document.getElementById('admin-orders-root');
+  const searchEl = document.getElementById('order-search');
+  const statusEl = document.getElementById('order-status');
+  const sortEl = document.getElementById('order-sort');
+
+  async function render() {
+    root.innerHTML = skeletonCards(3);
+    const p = new URLSearchParams({ limit: 50 });
+    if (searchEl.value) p.set('search', searchEl.value.trim());
+    if (statusEl.value) p.set('status', statusEl.value);
+    if (sortEl.value) p.set('sort', sortEl.value);
+    let res;
+    try { res = await api('/orders?' + p); } catch { root.innerHTML = emptyState('Yüklenemedi'); return; }
+    const orders = res.data || [];
+    if (!orders.length) { root.innerHTML = emptyState('Sipariş bulunamadı'); return; }
+    root.innerHTML = `
+      <div class="table-wrap"><table class="data">
+        <thead><tr><th>#</th><th>Müşteri</th><th>Tarih</th><th>Tutar</th><th>Durum</th></tr></thead>
+        <tbody>${orders.map((o) => `
+          <tr>
+            <td><a href="/order.html?id=${o.id}">#${o.id}</a></td>
+            <td>${esc(o.user_name || '—')}<br><span class="muted small">${esc(o.user_email || '')}</span></td>
+            <td>${formatDate(o.created_at)}</td>
+            <td class="price">${formatPrice(o.total_price)}</td>
+            <td><select data-order="${o.id}" class="status-select">
+              ${Object.keys(STATUSES).map((k) => `<option value="${k}" ${o.status === k ? 'selected' : ''}>${STATUSES[k]}</option>`).join('')}
+            </select></td>
+          </tr>`).join('')}</tbody>
+      </table></div>`;
+    root.querySelectorAll('.status-select').forEach((sel) => sel.addEventListener('change', async () => {
+      try { await api('/orders/' + sel.dataset.order, { method: 'PUT', body: { status: sel.value } }); toast('Durum güncellendi.', 'success'); }
+      catch (e) { toast(e.message, 'error'); render(); }
+    }));
+  }
+
+  let t;
+  searchEl.addEventListener('input', () => { clearTimeout(t); t = setTimeout(render, 350); });
+  statusEl.addEventListener('change', render);
+  sortEl.addEventListener('change', render);
+  render();
+}
+
+/* ===================== KULLANICILAR ===================== */
+async function initUsers() {
+  const root = document.getElementById('admin-users-root');
+  const searchEl = document.getElementById('user-search');
+  const roleEl = document.getElementById('user-role');
+
+  async function render() {
+    root.innerHTML = skeletonCards(3);
+    const p = new URLSearchParams();
+    if (searchEl.value) p.set('search', searchEl.value.trim());
+    if (roleEl.value) p.set('role', roleEl.value);
+    let res;
+    try { res = await api('/users?' + p); } catch { root.innerHTML = emptyState('Yüklenemedi'); return; }
+    const users = res.data || [];
+    if (!users.length) { root.innerHTML = emptyState('Kullanıcı bulunamadı'); return; }
+    root.innerHTML = `
+      <div class="table-wrap"><table class="data">
+        <thead><tr><th>Ad</th><th>E-posta</th><th>Telefon</th><th>Rol</th><th>Sipariş</th><th>Kayıt</th><th></th></tr></thead>
+        <tbody>${users.map((u) => `
+          <tr>
+            <td>${esc(u.name)}</td>
+            <td>${esc(u.email || '—')}</td>
+            <td>${esc(u.phone_number || '—')}</td>
+            <td><span class="tag">${u.role === 'admin' ? 'Yönetici' : 'Üye'}</span></td>
+            <td>${u.order_count ?? 0}</td>
+            <td>${formatDate(u.created_at)}</td>
+            <td><button class="btn btn-danger btn-sm" data-del="${u.id}">Sil</button></td>
+          </tr>`).join('')}</tbody>
+      </table></div>`;
+    root.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
+      if (!(await confirmModal('Bu kullanıcıyı silmek istediğinize emin misiniz? Sipariş ve yorumları da silinir.', { danger: true, okText: 'Sil' }))) return;
+      try { await api('/users/' + b.dataset.del, { method: 'DELETE' }); toast('Kullanıcı silindi.'); render(); }
+      catch (e) { toast(e.message, 'error'); }
+    }));
+  }
+
+  let t;
+  searchEl.addEventListener('input', () => { clearTimeout(t); t = setTimeout(render, 350); });
+  roleEl.addEventListener('change', render);
+  render();
+}
