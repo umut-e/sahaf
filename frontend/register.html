@@ -1,36 +1,25 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kayıt Ol</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kayıt Ol — Sahaf</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📖%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
-    <header>
-        <h1>Sahaf</h1>
-        <nav>
-            <a href="index.html">Ana Sayfa</a>
-            <a href="login.html">Giriş Yap</a>
-        </nav>
-    </header>
-    <main>
-        <h2>Kayıt Ol</h2>
-        <div id="register-error" class="error"></div>
-        <label>Ad Soyad:<br>
-            <input type="text" id="reg-name" required>
-        </label><br>
-        <label>E-posta:<br>
-            <input type="email" id="reg-email" required>
-        </label><br>
-        <label>Şifre:<br>
-            <input type="password" id="reg-password" required>
-        </label><br>
-        <button id="register-button">Kayıt Ol</button>
-    </main>
-    <script src="assets/js/main.js"></script>
-    <script>
-        document.getElementById('register-button').addEventListener('click', register);
-    </script>
+<body data-page="register">
+  <main>
+    <form class="auth-card" id="register-form">
+      <h1>Kayıt Ol</h1>
+      <div class="field"><label>Ad Soyad</label><input type="text" name="name" required></div>
+      <div class="field"><label>E-posta</label><input type="email" name="email" required autocomplete="email"></div>
+      <div class="field"><label>Telefon (opsiyonel)</label><input type="tel" name="phone_number" placeholder="+90..."></div>
+      <div class="field"><label>Şifre</label><input type="password" name="password" required minlength="6" autocomplete="new-password"></div>
+      <div class="field-error" id="form-error"></div>
+      <button class="btn btn-primary btn-block" type="submit">Kayıt Ol</button>
+      <p class="auth-alt">Zaten hesabınız var mı? <a href="/login.html">Giriş yapın</a></p>
+    </form>
+  </main>
+  <script type="module" src="/assets/js/main.js"></script>
 </body>
 </html>

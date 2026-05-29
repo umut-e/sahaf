@@ -1,34 +1,17 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Favorilerim - Sahaf</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Favorilerim — Sahaf</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📖%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
-    <header>
-        <h1>Sahaf</h1>
-        <nav>
-            <a href="index.html">Ana Sayfa</a>
-            <a href="cart.html">Sepet</a>
-            <a href="profile.html">Profil</a>
-            <a href="orders.html">Siparişlerim</a>
-        </nav>
-    </header>
-    <main>
-        <h2>Favorilerim</h2>
-        <div id="favorites-list" class="books-grid"></div>
-    </main>
-    <footer>
-        <p>&copy; 2026 Sahaf. Tüm hakları saklıdır.</p>
-    </footer>
-    <script src="assets/js/main.js?v=3"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            updateNavigation();
-            loadFavoritesPage();
-        });
-    </script>
+<body data-page="favorites">
+  <main>
+    <div class="page-head"><h1>Favorilerim</h1></div>
+    <div class="book-grid" id="fav-grid"></div>
+  </main>
+  <script type="module" src="/assets/js/main.js"></script>
 </body>
 </html>

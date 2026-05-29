@@ -1,106 +1,45 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sahaf - İkinci El Kitaplar</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=24">
-    <script>
-        (function(){
-            const saved = localStorage.getItem('theme');
-            if (saved === 'dark' || (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark');
-                document.body && document.body.classList.add('dark');
-            }
-        })();
-    </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sahaf — İkinci El & Nadir Kitaplar</title>
+  <meta name="description" content="Sahaf: ikinci el, nadir ve sıfır kitapların buluşma noktası. Roman, tarih, felsefe, bilim kurgu ve daha fazlası.">
+  <meta property="og:title" content="Sahaf — İkinci El & Nadir Kitaplar">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📖%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
-    <header>
-        <h1>Sahaf</h1>
-        <nav>
-            <a href="index.html">Ana Sayfa</a>
-            <a href="cart.html">Sepet</a>
-            <a href="profile.html" id="profile-link">Profil</a>
-            <a href="login.html" id="login-link">Giriş Yap</a>
-            <button id="toggle-theme">🌙</button>
-        </nav>
-    </header>
-    <main>
-        <section class="hero">
-            <h2>İkinci El Kitapların Yeni Evi</h2>
-            <p>Aradığınız o nadir kitabı, en uygun fiyatlarla binlerce seçenek arasından hemen bulun. Sahaf'ın ayrıcalıklı dünyasına hoş geldiniz.</p>
-        </section>
-        <section id="search-section">
-            <select id="category-filter" class="custom-select">
-                <option value="">Tüm Kategoriler</option>
-            </select>
-            <input type="text" id="search-input" placeholder="Kitap veya Yazar Ara...">
-            <select id="sort-filter" class="custom-select">
-                <option value="newest">Son Eklenen</option>
-                <option value="oldest">İlk Eklenen</option>
-                <option value="price_asc">Fiyat: Ucuzdan Pahalıya</option>
-                <option value="price_desc">Fiyat: Pahalıdan Ucuza</option>
-                <option value="condition_asc">Durum: En İyiden En Kötüye</option>
-                <option value="condition_desc">Durum: En Kötüden En İyiye</option>
-                <option value="rating_desc">Puan: Yüksekten Düşüğe</option>
-                <option value="rating_asc">Puan: Düşükten Yükseğe</option>
-            </select>
-            <button id="search-button">Ara</button>
-        </section>
-        
-        <div id="home-admin-actions" style="display:none; max-width:1200px; margin: 1rem auto; padding: 0 20px; text-align: right; position: relative; z-index: 1;">
-            <button id="home-add-book-btn" class="btn-primary" style="background:var(--primary); color:#fff; border:none; padding:0.5rem 1rem; border-radius:var(--radius-md); cursor:pointer; font-weight:600;">+ Yeni Kitap Ekle</button>
-        </div>
-        <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            loadCategories();
-            setTimeout(() => {
-                initCustomSelects();
-            }, 50); // small delay to ensure categories are rendered
-            loadBooks();
-            // theme toggle
-            document.getElementById('toggle-theme').addEventListener('click', toggleTheme);
-            document.getElementById('search-button').addEventListener('click', () => {
-                window.currentPage = 1;
-                loadBooks();
-            });
-            document.getElementById('category-filter')?.addEventListener('change', () => {
-                window.currentPage = 1;
-                loadBooks();
-            });
-            document.getElementById('sort-filter')?.addEventListener('change', () => {
-                window.currentPage = 1;
-                loadBooks();
-            });
-            document.getElementById('search-input')?.addEventListener('keyup', (e) => {
-                if (e.key === 'Enter') {
-                    window.currentPage = 1;
-                    loadBooks();
-                }
-            });
-            document.getElementById('category-filter')?.addEventListener('change', () => {
-                window.currentPage = 1;
-                loadBooks();
-            });
-            document.getElementById('sort-filter')?.addEventListener('change', () => {
-                window.currentPage = 1;
-                loadBooks();
-            });
-            document.getElementById('home-add-book-btn')?.addEventListener('click', openAddModal);
-            document.getElementById('prev-page').addEventListener('click', () => {
-                if (window.currentPage > 1) {
-                    window.currentPage--;
-                    loadBooks();
-                }
-            });
-            document.getElementById('next-page').addEventListener('click', () => {
-                if (window.currentPage < window.totalPages) {
-                    window.currentPage++;
-                    loadBooks();
-                }
-            });
-        });
-    </script>
+<body data-page="home">
+  <main>
+    <section class="hero">
+      <h1>Sahafın Tozlu Raflarına Hoş Geldiniz</h1>
+      <p>İkinci el, nadir ve sıfır kitaplar; her bütçeye uygun fiyatlarla.</p>
+    </section>
+
+    <div class="filters">
+      <input type="search" id="search" class="search" placeholder="Kitap adı veya yazar ara...">
+      <select id="condition" aria-label="Durum">
+        <option value="">Tüm durumlar</option>
+        <option value="new">Sıfır</option>
+        <option value="good">İyi</option>
+        <option value="fair">Orta</option>
+        <option value="poor">Yıpranmış</option>
+      </select>
+      <select id="sort" aria-label="Sıralama">
+        <option value="newest">En yeni</option>
+        <option value="oldest">En eski</option>
+        <option value="price_asc">Fiyat (artan)</option>
+        <option value="price_desc">Fiyat (azalan)</option>
+        <option value="title_asc">Başlık (A-Z)</option>
+        <option value="rating_desc">En yüksek puan</option>
+      </select>
+    </div>
+
+    <div class="chips" id="category-chips"></div>
+    <div class="book-grid" id="books-grid"></div>
+    <div class="pagination" id="pagination"></div>
+  </main>
+  <script type="module" src="/assets/js/main.js"></script>
 </body>
 </html>

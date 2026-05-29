@@ -1,33 +1,23 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giriş Yap</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Giriş Yap — Sahaf</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📖%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
-    <header>
-        <h1>Sahaf</h1>
-        <nav>
-            <a href="index.html">Ana Sayfa</a>
-            <a href="register.html">Kayıt Ol</a>
-        </nav>
-    </header>
-    <main>
-        <h2>Giriş Yap</h2>
-        <div id="login-error" class="error"></div>
-        <label>E-posta:<br>
-            <input type="email" id="login-email" required>
-        </label><br>
-        <label>Şifre:<br>
-            <input type="password" id="login-password" required>
-        </label><br>
-        <button id="login-button">Giriş</button>
-    </main>
-    <script src="assets/js/main.js"></script>
-    <script>
-        document.getElementById('login-button').addEventListener('click', login);
-    </script>
+<body data-page="login">
+  <main>
+    <form class="auth-card" id="login-form">
+      <h1>Giriş Yap</h1>
+      <div class="field"><label>E-posta</label><input type="email" name="email" required autocomplete="email"></div>
+      <div class="field"><label>Şifre</label><input type="password" name="password" required autocomplete="current-password"></div>
+      <div class="field-error" id="form-error"></div>
+      <button class="btn btn-primary btn-block" type="submit">Giriş Yap</button>
+      <p class="auth-alt">Hesabınız yok mu? <a href="/register.html">Kayıt olun</a></p>
+    </form>
+  </main>
+  <script type="module" src="/assets/js/main.js"></script>
 </body>
 </html>
