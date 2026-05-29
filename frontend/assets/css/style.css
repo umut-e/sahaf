@@ -52,6 +52,7 @@ html.dark {
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 body {
   margin: 0;
@@ -120,6 +121,19 @@ main { flex: 1; width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 2r
 }
 .dropdown a:hover, .dropdown button:hover { background: var(--surface-2); }
 .dropdown-danger { color: var(--danger); }
+
+/* ---------------- footer ---------------- */
+.site-footer { border-top: 1px solid var(--border); background: var(--surface); margin-top: 3rem; }
+.footer-inner {
+  max-width: var(--maxw); margin: 0 auto; padding: 2rem 1.25rem;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap;
+}
+.footer-inner .logo { font-size: 1.25rem; margin-bottom: .4rem; }
+.footer-inner > p, .footer-inner > div p { margin: .25rem 0 0; }
+.footer-links { display: flex; flex-direction: column; gap: .5rem; }
+.footer-links a { color: var(--muted); transition: color .2s; }
+.footer-links a:hover { color: var(--primary); }
+.footer-inner .small { width: 100%; text-align: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
 
 /* ---------------- butonlar ---------------- */
 .btn {
@@ -192,7 +206,7 @@ textarea { resize: vertical; min-height: 90px; }
 .book-card {
   position: relative; background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column;
-  box-shadow: var(--shadow-sm); transition: transform .2s, box-shadow .2s;
+  box-shadow: var(--shadow-sm); transition: transform .2s, box-shadow .2s; cursor: pointer;
 }
 .book-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
 .book-cover { position: relative; aspect-ratio: 3 / 4; background: var(--surface-2); overflow: hidden; }
