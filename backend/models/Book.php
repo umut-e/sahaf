@@ -82,10 +82,10 @@ class Book {
         if (!$book) {
             return null;
         }
-        $imgStmt = $this->db->prepare("SELECT image_path FROM book_images WHERE book_id = :id ORDER BY id ASC");
+        $imgStmt = $this->db->prepare("SELECT id, image_path FROM book_images WHERE book_id = :id ORDER BY id ASC");
         $imgStmt->execute([':id' => $id]);
-        $book['images'] = $imgStmt->fetchAll(PDO::FETCH_COLUMN);
-        $book['primary_image'] = $book['images'][0] ?? null;
+        $book['images'] = $imgStmt->fetchAll();          // [{id, image_path}, ...]
+        $book['primary_image'] = $book['images'][0]['image_path'] ?? null;
         return $book;
     }
 
@@ -148,5 +148,21 @@ class Book {
 
     public function deleteImages($bookId): bool {
         return $this->db->prepare("DELETE FROM book_images WHERE book_id = :id")->execute([':id' => $bookId]);
+    }
+
+    /** Tek bir görseli (ve dosyasını) siler. */
+    public function deleteImage($bookId, $imageId): bool {
+        $sel = $this->db->prepare("SELECT image_path FROM book_images WHERE id = :img AND book_id = :b");
+        $sel->execute([':img' => $imageId, ':b' => $bookId]);
+        $path = $sel->fetchColumn();
+        if ($path === false) {
+            return false;
+        }
+        $file = __DIR__ . '/../' . $path;
+        if (is_file($file)) {
+            @unlink($file);
+        }
+        return $this->db->prepare("DELETE FROM book_images WHERE id = :img AND book_id = :b")
+                        ->execute([':img' => $imageId, ':b' => $bookId]);
     }
 }

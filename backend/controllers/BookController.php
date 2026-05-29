@@ -68,10 +68,9 @@ class BookController {
         $data = Request::body();
         $model->update($id, $data);
 
-        // Yeni görseller yüklendiyse mevcutları değiştir.
+        // Yeni görseller yüklendiyse mevcutlara EKLE (silme ayrı uçtan yapılır).
         $images = Uploader::handleImages('images');
         if (!empty($images)) {
-            $model->deleteImages($id);
             $model->saveImages($id, $images);
         }
         Response::ok('Kitap güncellendi.');
@@ -87,9 +86,14 @@ class BookController {
         Response::ok('Kitap silindi.');
     }
 
-    public function deleteImages($id): void {
+    public function deleteImages($id, $imageId = null): void {
         Auth::requireAdmin();
-        (new Book($this->db))->deleteImages($id);
+        $model = new Book($this->db);
+        if ($imageId) {
+            $model->deleteImage($id, $imageId);
+            Response::ok('Görsel kaldırıldı.');
+        }
+        $model->deleteImages($id);
         Response::ok('Görseller silindi.');
     }
 }

@@ -51,6 +51,7 @@ try {
     $resource = $parts[1] ?? null;
     $id       = $parts[2] ?? null;
     $sub      = $parts[3] ?? null;
+    $sub2     = $parts[4] ?? null;
 
     // HTTP method + form/header tabanlı override (multipart PUT/DELETE için)
     $method = $_SERVER['REQUEST_METHOD'];
@@ -87,7 +88,7 @@ try {
             } elseif ($method === 'PUT') {
                 $c->update($id);
             } elseif ($method === 'DELETE') {
-                ($sub === 'images') ? $c->deleteImages($id) : $c->delete($id);
+                ($sub === 'images') ? $c->deleteImages($id, $sub2) : $c->delete($id);
             } else {
                 Response::error('Yöntem desteklenmiyor.', 405);
             }

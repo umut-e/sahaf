@@ -179,7 +179,7 @@ async function initBook() {
   try { book = await api('/books/' + id); }
   catch { root.innerHTML = emptyState('Kitap bulunamadı', '', '<a class="btn btn-primary" href="/index.html">Kitaplara dön</a>'); return; }
 
-  const images = (book.images || []).map(imageUrl);
+  const images = (book.images || []).map((im) => imageUrl(im.image_path));
   const out = Number(book.stock) <= 0;
   root.innerHTML = `
     <div class="book-detail">

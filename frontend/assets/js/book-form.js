@@ -1,7 +1,7 @@
 // Ortak kitap ekleme/düzenleme modalı. Hem admin panelinde hem mağazadaki
 // (admine özel) düzenleme butonlarında kullanılır.
 
-import { api } from './api.js';
+import { api, imageUrl } from './api.js';
 import { openModal, toast, confirmModal, esc, CONDITIONS } from './ui.js';
 
 let _cats = [];
@@ -39,10 +39,42 @@ export async function openBookForm(book, onSaved) {
         <div style="flex:1"><label>Kategori</label><select name="category_id"><option value="">—</option>${cats.map((c) => `<option value="${c.id}" ${full?.category_id == c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
       </div>
       <div class="field"><label>Açıklama</label><textarea name="description">${esc(full?.description || '')}</textarea></div>
-      <div class="field"><label>Görseller ${book ? '(yeni yüklenirse mevcutların yerini alır)' : ''}</label><input type="file" name="images" accept="image/*" multiple></div>
+      <div class="field">
+        <label>Kapak görselleri</label>
+        ${book ? '<div class="img-manager" id="img-manager"></div>' : ''}
+        <input type="file" name="images" accept="image/*" multiple>
+        <span class="muted small">${book ? 'Yeni görsel eklenir; mevcutları yukarıdan kaldırabilirsiniz.' : 'Birden fazla görsel seçebilirsiniz.'}</span>
+      </div>
       <div class="field-error" id="bf-err"></div>
       <button class="btn btn-primary btn-block" type="submit">${book ? 'Kaydet' : 'Ekle'}</button>
     </form>`, { wide: true });
+
+  // Düzenlemede mevcut görselleri kaldırma butonlarıyla göster
+  if (book) {
+    const renderThumbs = () => {
+      const box = el.querySelector('#img-manager');
+      if (!box) return;
+      const imgs = full.images || [];
+      box.innerHTML = imgs.length
+        ? imgs.map((im) => `
+            <div class="img-thumb">
+              <img src="${imageUrl(im.image_path)}" alt="">
+              <button type="button" class="img-remove" data-img="${im.id}" aria-label="Görseli kaldır" title="Kaldır">&times;</button>
+            </div>`).join('')
+        : '<p class="muted small">Henüz görsel yok.</p>';
+      box.querySelectorAll('.img-remove').forEach((b) => b.addEventListener('click', async () => {
+        if (!(await confirmModal('Bu görseli kaldırmak istediğinize emin misiniz?', { danger: true, okText: 'Kaldır' }))) return;
+        try {
+          await api(`/books/${book.id}/images/${b.dataset.img}`, { method: 'DELETE' });
+          full.images = (full.images || []).filter((x) => String(x.id) !== String(b.dataset.img));
+          renderThumbs();
+          toast('Görsel kaldırıldı.', 'success');
+          if (onSaved) onSaved();
+        } catch (e) { toast(e.message, 'error'); }
+      }));
+    };
+    renderThumbs();
+  }
 
   el.querySelector('#bf').addEventListener('submit', async (e) => {
     e.preventDefault();
