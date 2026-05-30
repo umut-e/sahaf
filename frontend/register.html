@@ -13,8 +13,7 @@
     <form class="auth-card" id="register-form">
       <h1>Kayıt Ol</h1>
       <div class="field"><label>Ad Soyad</label><input type="text" name="name" required></div>
-      <div class="field"><label>E-posta</label><input type="email" name="email" required autocomplete="email"></div>
-      <div class="field"><label>Telefon (opsiyonel)</label><input type="tel" name="phone_number" placeholder="+90..."></div>
+      <div class="field"><label>E-posta veya telefon</label><input type="text" name="identifier" required autocomplete="username" placeholder="ornek@eposta.com veya +90..."></div>
       <div class="field"><label>Şifre</label><input type="password" name="password" required minlength="6" autocomplete="new-password"></div>
       <div class="field-error" id="form-error"></div>
       <button class="btn btn-primary btn-block" type="submit">Kayıt Ol</button>

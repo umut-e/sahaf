@@ -565,7 +565,7 @@ function initLogin() {
     err.textContent = '';
     const fd = new FormData(form);
     try {
-      const res = await api('/login', { method: 'POST', body: { email: fd.get('email'), password: fd.get('password') } });
+      const res = await api('/login', { method: 'POST', body: { identifier: fd.get('identifier'), password: fd.get('password') } });
       saveSession(res.token, res.user);
       await store.migrateLocalToServer();
       toast('Hoş geldiniz, ' + res.user.name + '!', 'success');
@@ -584,7 +584,7 @@ function initRegister() {
     const fd = new FormData(form);
     if (String(fd.get('password')).length < 6) { err.textContent = 'Şifre en az 6 karakter olmalıdır.'; return; }
     try {
-      await api('/register', { method: 'POST', body: { name: fd.get('name'), email: fd.get('email'), phone_number: fd.get('phone_number'), password: fd.get('password') } });
+      await api('/register', { method: 'POST', body: { name: fd.get('name'), identifier: fd.get('identifier'), password: fd.get('password') } });
       toast('Kayıt başarılı! Giriş yapabilirsiniz.', 'success');
       setTimeout(() => (location.href = '/login.html'), 800);
     } catch (e2) { err.textContent = e2.message; }

@@ -35,6 +35,16 @@ class User {
         return $stmt->fetch();
     }
 
+    /** E-posta VEYA telefonla kullanıcıyı bulur (giriş/kayıt için). */
+    public function findByLogin(string $identifier) {
+        $norm = preg_replace('/[\s\-()]/', '', $identifier);
+        $stmt = $this->db->prepare(
+            "SELECT * FROM users WHERE email = :id OR phone_number = :id OR phone_number = :norm LIMIT 1"
+        );
+        $stmt->execute([':id' => $identifier, ':norm' => $norm]);
+        return $stmt->fetch();
+    }
+
     /** Profil görüntüleme için güvenli alanlar (şifre hariç). */
     public function findById($id) {
         $stmt = $this->db->prepare(

@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git remote *)",
+      "Bash(echo \"remote url: $\\(git remote get-url origin\\)\")",
+      "Bash(ls -la ~/.ssh/*.pub 2>/dev/null && echo \"--- mevcut anahtar var ---\" || echo \"Henüz SSH anahtarı yok.\")",
+      "Read(//home/w4zel/.ssh/**)",
+      "Bash(GIT_SSH_COMMAND=\"ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes\" ssh -T git@github.com)",
+      "Bash(echo \"yeni remote: $\\(git remote get-url origin\\)\")",
+      "Bash(GIT_SSH_COMMAND=\"ssh -o StrictHostKeyChecking=accept-new\" git push origin master)",
+      "Bash(echo \"remote geri alındı: $\\(git remote get-url origin\\)\")",
+      "Bash(git config *)",
+      "Bash(echo \"local helper: $\\(git config --local --get credential.helper || echo yok\\)\")",
+      "Bash(echo \"global helper: $\\(git config --global --get credential.helper || echo yok\\)\")",
+      "Bash(echo \"system helper: $\\(git config --system --get credential.helper 2>/dev/null || echo yok\\)\")",
+      "Bash(echo \"remote: $\\(git remote get-url origin\\)\")",
+      "Bash(git credential *)",
+      "Bash(git fetch *)"
+    ]
+  }
+}

@@ -14,26 +14,40 @@ class AuthController {
 
     public function register(): void {
         $data = Request::body();
-        if (empty($data['email']) || empty($data['password']) || empty($data['name'])) {
-            Response::error('E-posta, şifre ve ad zorunludur.', 422);
+        $name = trim($data['name'] ?? '');
+        $identifier = trim($data['identifier'] ?? $data['email'] ?? '');
+        $password = $data['password'] ?? '';
+
+        if ($name === '' || $identifier === '' || $password === '') {
+            Response::error('Ad, e-posta/telefon ve şifre zorunludur.', 422);
         }
-        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            Response::error('Geçersiz e-posta adresi.', 422);
-        }
-        if (strlen($data['password']) < 6) {
+        if (strlen($password) < 6) {
             Response::error('Şifre en az 6 karakter olmalıdır.', 422);
         }
 
+        // Girilen değer e-posta mı, telefon mu?
+        $email = null;
+        $phone = null;
+        if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
+            $email = $identifier;
+        } else {
+            $norm = preg_replace('/[\s\-()]/', '', $identifier);
+            if (!preg_match('/^\+?\d{7,15}$/', $norm)) {
+                Response::error('Geçerli bir e-posta adresi veya telefon numarası girin.', 422);
+            }
+            $phone = $norm;
+        }
+
         $userModel = new User($this->db);
-        if ($userModel->findByEmail($data['email'])) {
-            Response::error('Bu e-posta zaten kayıtlı.', 409);
+        if ($userModel->findByLogin($email ?? $phone)) {
+            Response::error('Bu e-posta veya telefon zaten kayıtlı.', 409);
         }
 
         $ok = $userModel->create([
-            'email'        => $data['email'],
-            'phone_number' => $data['phone_number'] ?? null,
-            'password'     => password_hash($data['password'], PASSWORD_BCRYPT),
-            'name'         => $data['name'],
+            'email'        => $email,
+            'phone_number' => $phone,
+            'password'     => password_hash($password, PASSWORD_BCRYPT),
+            'name'         => $name,
             'role'         => 'user',
         ]);
 
@@ -43,13 +57,15 @@ class AuthController {
 
     public function login(): void {
         $data = Request::body();
-        if (empty($data['email']) || empty($data['password'])) {
-            Response::error('E-posta ve şifre zorunludur.', 422);
+        $identifier = trim($data['identifier'] ?? $data['email'] ?? '');
+        $password = $data['password'] ?? '';
+        if ($identifier === '' || $password === '') {
+            Response::error('E-posta/telefon ve şifre zorunludur.', 422);
         }
         $userModel = new User($this->db);
-        $user = $userModel->findByEmail($data['email']);
-        if (!$user || !password_verify($data['password'], $user['password'])) {
-            Response::error('E-posta veya şifre hatalı.', 401);
+        $user = $userModel->findByLogin($identifier);
+        if (!$user || !password_verify($password, $user['password'])) {
+            Response::error('E-posta/telefon veya şifre hatalı.', 401);
         }
 
         Response::json([
