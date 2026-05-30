@@ -24,13 +24,40 @@ class User {
         ]);
     }
 
-    /** E-posta VEYA telefonla kullanıcıyı bulur (giriş/kayıt için). */
+    /**
+     * E-posta VEYA telefonla kullanıcıyı bulur (giriş/kayıt için).
+     * Telefonda format farkını yok sayar: +905426554948, 905426554948 ve
+     * 05426554948 hepsi son 10 haneye göre aynı kullanıcıyı bulur.
+     */
     public function findByLogin(string $identifier) {
-        $norm = preg_replace('/[\s\-()]/', '', $identifier);
-        $stmt = $this->db->prepare(
-            "SELECT * FROM users WHERE email = :id OR phone_number = :id OR phone_number = :norm LIMIT 1"
-        );
-        $stmt->execute([':id' => $identifier, ':norm' => $norm]);
+        $identifier = trim($identifier);
+
+        // E-posta gibi görünüyorsa sadece e-posta kolonunda ara.
+        if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
+            $stmt = $this->db->prepare("SELECT * FROM users WHERE email = :id LIMIT 1");
+            $stmt->execute([':id' => $identifier]);
+            return $stmt->fetch();
+        }
+
+        // Telefon: yalnızca rakamları al, son 10 haneyle eşleştir.
+        $digits = preg_replace('/\D/', '', $identifier);
+        if (strlen($digits) >= 7) {
+            $last10 = substr($digits, -10);
+            // Kayıtlı numaradan ayraç/+ temizleyip son 10 haneyi karşılaştır.
+            $clean = "RIGHT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone_number,'+',''),' ',''),'-',''),'(',''),')',''), 10)";
+            $stmt = $this->db->prepare(
+                "SELECT * FROM users WHERE phone_number IS NOT NULL AND $clean = :l10 LIMIT 1"
+            );
+            $stmt->execute([':l10' => $last10]);
+            $user = $stmt->fetch();
+            if ($user) {
+                return $user;
+            }
+        }
+
+        // Son çare: ham tam eşleşme.
+        $stmt = $this->db->prepare("SELECT * FROM users WHERE email = :id OR phone_number = :id LIMIT 1");
+        $stmt->execute([':id' => $identifier]);
         return $stmt->fetch();
     }
 
