@@ -77,6 +77,7 @@ async function initBooks() {
   const root = document.getElementById('admin-books-root');
   const searchEl = document.getElementById('book-search');
   const catEl = document.getElementById('book-category');
+  const sortEl = document.getElementById('book-sort');
 
   document.getElementById('add-book-btn')?.addEventListener('click', () => openBookForm(null, render));
 
@@ -94,6 +95,7 @@ async function initBooks() {
     const p = new URLSearchParams({ limit: 100 });
     if (searchEl?.value) p.set('search', searchEl.value.trim());
     if (catEl?.value) p.set('category_id', catEl.value);
+    if (sortEl?.value) p.set('sort', sortEl.value);
     let res;
     try { res = await api('/books?' + p); } catch { root.innerHTML = emptyState('Kitaplar yüklenemedi'); return; }
     const books = res.data;
@@ -127,6 +129,7 @@ async function initBooks() {
   let t;
   searchEl?.addEventListener('input', () => { clearTimeout(t); t = setTimeout(render, 350); });
   catEl?.addEventListener('change', render);
+  sortEl?.addEventListener('change', render);
   render();
 }
 

@@ -37,6 +37,8 @@ class Book {
             'price_desc'  => 'b.price DESC',
             'title_asc'   => 'b.title ASC',
             'rating_desc' => 'avg_rating DESC',
+            'stock_asc'   => 'b.stock ASC',
+            'stock_desc'  => 'b.stock DESC',
         ];
         $order = $sortMap[$p['sort'] ?? 'newest'] ?? $sortMap['newest'];
 

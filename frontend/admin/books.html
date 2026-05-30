@@ -24,6 +24,16 @@
     <div class="filters">
       <input type="search" id="book-search" class="search" placeholder="Kitap adı veya yazar ara...">
       <select id="book-category"><option value="">Tüm kategoriler</option></select>
+      <select id="book-sort" aria-label="Sıralama">
+        <option value="newest">En yeni</option>
+        <option value="oldest">En eski</option>
+        <option value="title_asc">Başlık (A-Z)</option>
+        <option value="price_asc">Fiyat (artan)</option>
+        <option value="price_desc">Fiyat (azalan)</option>
+        <option value="stock_asc">Stok (az → çok)</option>
+        <option value="stock_desc">Stok (çok → az)</option>
+        <option value="rating_desc">En yüksek puan</option>
+      </select>
     </div>
     <div id="admin-books-root"></div>
   </main>
