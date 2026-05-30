@@ -193,21 +193,26 @@ async function initBook() {
       <div class="detail-info">
         <h1>${esc(book.title)}</h1>
         <p class="detail-author">${esc(book.author)}</p>
-        <div class="book-meta">
+        <div class="detail-badges">
           ${book.category_name ? `<span class="tag">${esc(book.category_name)}</span>` : ''}
-          ${Number(book.review_count) > 0 ? starsHtml(book.avg_rating, book.review_count) : '<span class="muted small">Henüz puan yok</span>'}
+          <span class="pill">${CONDITIONS[book.condition] || book.condition}</span>
+          <span class="pill ${out ? 'pill-out' : 'pill-stock'}">${out ? 'Tükendi' : esc(book.stock) + ' adet stokta'}</span>
         </div>
-        <div class="spec-list">
-          <div><span class="spec-label">Durum</span>${CONDITIONS[book.condition] || book.condition}</div>
-          <div><span class="spec-label">Stok</span>${out ? '<span style="color:var(--danger)">Tükendi</span>' : esc(book.stock) + ' adet'}</div>
+        <div class="rating-row">
+          ${Number(book.review_count) > 0 ? starsHtml(book.avg_rating, book.review_count) : '<span class="muted small">Henüz değerlendirilmemiş</span>'}
         </div>
         <div class="detail-price">${formatPrice(book.price)}</div>
         ${book.description ? `<p class="detail-desc">${esc(book.description)}</p>` : ''}
-        <div class="detail-actions">
-          <button class="btn btn-primary" id="add-cart" ${out ? 'disabled' : ''}>${out ? 'Tükendi' : 'Sepete Ekle'}</button>
+        <div class="buy-row">
+          ${out ? '' : `<div class="qty-control" id="qty"><button type="button" data-q="dec" aria-label="Azalt">−</button><span id="qty-val">1</span><button type="button" data-q="inc" aria-label="Artır">+</button></div>`}
+          <button class="btn btn-primary btn-lg" id="add-cart" ${out ? 'disabled' : ''}>${out ? 'Stokta Yok' : 'Sepete Ekle'}</button>
           <button class="btn btn-ghost" id="fav-btn">${store.isFav(book.id) ? '♥ Favoride' : '♡ Favorile'}</button>
-          ${isAdmin() ? '<button class="btn btn-ghost" id="admin-edit">✏️ Düzenle</button><button class="btn btn-danger" id="admin-del">Sil</button>' : ''}
         </div>
+        ${isAdmin() ? `<div class="admin-bar">
+          <span class="admin-bar-label">Yönetici</span>
+          <button class="btn btn-ghost btn-sm" id="admin-edit">✏️ Düzenle</button>
+          <button class="btn btn-danger btn-sm" id="admin-del">Sil</button>
+        </div>` : ''}
       </div>
     </div>
     <section class="reviews-section">
@@ -225,7 +230,19 @@ async function initBook() {
       root.querySelectorAll('.gallery-thumbs img').forEach((x) => x.classList.toggle('active', x === th));
     }));
   }
-  document.getElementById('add-cart')?.addEventListener('click', async () => { await store.addToCart(book); toast('Sepete eklendi.', 'success'); });
+  let qty = 1;
+  const qtyEl = document.getElementById('qty');
+  qtyEl?.addEventListener('click', (e) => {
+    const dir = e.target.closest('[data-q]')?.dataset.q;
+    if (!dir) return;
+    const max = Math.max(1, Number(book.stock) || 1);
+    qty = Math.min(max, Math.max(1, qty + (dir === 'inc' ? 1 : -1)));
+    document.getElementById('qty-val').textContent = qty;
+  });
+  document.getElementById('add-cart')?.addEventListener('click', async () => {
+    await store.addToCart(book, qty);
+    toast(qty > 1 ? `${qty} adet sepete eklendi.` : 'Sepete eklendi.', 'success');
+  });
   document.getElementById('fav-btn')?.addEventListener('click', async (e) => {
     if (!isLoggedIn()) { toast('Favorilere eklemek için giriş yapmalısınız.', 'error'); return; }
     const now = await store.toggleFavorite(book);

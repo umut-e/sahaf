@@ -294,6 +294,15 @@ textarea { resize: vertical; min-height: 90px; }
 .detail-price { font-size: 1.8rem; font-weight: 700; color: var(--primary); margin: 1rem 0; }
 .detail-desc { line-height: 1.7; margin: 1rem 0; }
 .detail-actions { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1.25rem; }
+.detail-badges { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin: .25rem 0 .5rem; }
+.rating-row { margin-bottom: .5rem; }
+.pill { padding: .3rem .75rem; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--muted); font-size: .82rem; font-weight: 500; }
+.pill-stock { background: color-mix(in srgb, var(--success) 18%, transparent); color: var(--success); }
+.pill-out { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+.buy-row { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-top: 1.25rem; }
+.btn-lg { padding: .9rem 1.8rem; font-size: 1.05rem; }
+.admin-bar { display: flex; align-items: center; gap: .5rem; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px dashed var(--border); }
+.admin-bar-label { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-right: .25rem; }
 .spec-list { display: flex; gap: 1.5rem; flex-wrap: wrap; margin: 1rem 0; padding: 1rem 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .spec-list div { font-size: .9rem; }
 .spec-list .spec-label { color: var(--muted); font-size: .78rem; display: block; }
