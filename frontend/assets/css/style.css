@@ -391,12 +391,21 @@ table.data tr:last-child td { border-bottom: none; }
   display: flex; flex-direction: column; gap: .7rem; max-width: min(380px, calc(100vw - 2rem));
 }
 .toast {
+  position: relative; overflow: hidden;
   display: flex; align-items: center; gap: .75rem;
   background: var(--surface); color: var(--text); border: 1px solid var(--border); border-left: 5px solid var(--primary);
   padding: 1rem 1.1rem; border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
   opacity: 0; transform: translateX(120%); transition: opacity .35s, transform .35s cubic-bezier(.2,.8,.2,1);
 }
 .toast.show { opacity: 1; transform: translateX(0); }
+.toast-bar {
+  position: absolute; left: 0; bottom: 0; height: 3px; width: 100%;
+  background: var(--primary); transform-origin: left;
+  animation-name: toastbar; animation-timing-function: linear; animation-fill-mode: forwards;
+}
+@keyframes toastbar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.toast-success .toast-bar { background: var(--success); }
+.toast-error .toast-bar { background: var(--danger); }
 .toast-icon {
   flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
   font-size: .95rem; font-weight: 700; color: #fff; background: var(--primary);
@@ -412,14 +421,16 @@ table.data tr:last-child td { border-bottom: none; }
 
 /* ---------------- modal ---------------- */
 .modal-backdrop {
-  position: fixed; inset: 0; background: rgba(20, 12, 4, .55); backdrop-filter: blur(3px);
+  position: fixed; inset: 0; background: rgba(20, 12, 4, .5); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
   display: flex; align-items: center; justify-content: center; z-index: 900; padding: 1rem; animation: fade .2s;
 }
 @keyframes fade { from { opacity: 0; } }
 .modal {
   position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
   padding: 1.75rem; box-shadow: var(--shadow-lg); width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+  animation: modalpop .26s cubic-bezier(.2, .8, .2, 1);
 }
+@keyframes modalpop { from { opacity: 0; transform: translateY(14px) scale(.96); } }
 .modal-sm { max-width: 380px; }
 .modal-wide { max-width: 720px; }
 .modal-close { position: absolute; top: .75rem; right: 1rem; background: none; border: none; font-size: 1.6rem; color: var(--muted); cursor: pointer; line-height: 1; }

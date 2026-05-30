@@ -69,9 +69,11 @@ function showToastEl(id, message, type, remaining) {
   const el = document.createElement('div');
   el.className = 'toast toast-' + type;
   el.dataset.id = id;
+  const dur = Math.max(800, remaining);
   el.innerHTML = `<span class="toast-icon">${TOAST_ICON[type] || TOAST_ICON.info}</span>
     <span class="toast-msg">${esc(message)}</span>
-    <button class="toast-close" aria-label="Kapat">&times;</button>`;
+    <button class="toast-close" aria-label="Kapat">&times;</button>
+    <div class="toast-bar" style="animation-duration:${dur}ms"></div>`;
   toastWrap().appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
   const dismiss = () => {
