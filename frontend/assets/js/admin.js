@@ -3,7 +3,7 @@
 import { api, isAdmin, isLoggedIn, imageUrl } from './api.js';
 import {
   mountChrome, openModal, toast, confirmModal, esc, formatPrice, formatDate,
-  skeletonCards, emptyState, STATUSES,
+  skeletonCards, emptyState, STATUSES, refreshNotifBadge,
 } from './ui.js';
 import { fillProvinceSelect, fillDistrictSelect } from './tr-cities.js';
 import { openBookForm, confirmDeleteBook } from './book-form.js';
@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('main').innerHTML = emptyState('Erişim reddedildi', 'Bu sayfa yalnızca yöneticiler içindir.', '<a class="btn btn-primary" href="/index.html">Anasayfa</a>', '🔒');
     return;
   }
+  refreshNotifBadge();
   const page = document.body.dataset.page;
   ({
     'admin-dashboard': initDashboard,

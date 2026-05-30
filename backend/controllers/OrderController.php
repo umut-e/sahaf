@@ -77,6 +77,11 @@ class OrderController {
             Response::error('Geçersiz durum.', 422);
         }
 
+        // Durum zaten aynıysa gereksiz bildirim/işlem yapma.
+        if ($status === $order['status']) {
+            Response::ok('Sipariş zaten bu durumda.');
+        }
+
         if (!Auth::isAdmin()) {
             // Kullanıcı yalnızca kendi bekleyen siparişini iptal edebilir.
             if ($order['user_id'] != $userId) {

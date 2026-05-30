@@ -2,7 +2,7 @@
 // skeleton, boş durum ve yardımcı fonksiyonlar.
 
 import { api, currentUser, isLoggedIn, isAdmin, clearSession } from './api.js';
-import { cartCount, favCount, refreshCounts } from './store.js';
+import { cartCount, favCount, refreshCounts, clearCaches } from './store.js';
 
 /* ---------------- yardımcılar ---------------- */
 export function esc(s) {
@@ -76,13 +76,18 @@ function showToastEl(id, message, type, remaining) {
     <div class="toast-bar" style="animation-duration:${dur}ms"></div>`;
   toastWrap().appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
+  let timer;
+  let done = false;
   const dismiss = () => {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
     el.classList.remove('show');
     setTimeout(() => el.remove(), 300);
     saveQueue(toastQueue().filter((t) => t.id !== id));
   };
   el.querySelector('.toast-close').addEventListener('click', dismiss);
-  setTimeout(dismiss, Math.max(800, remaining));
+  timer = setTimeout(dismiss, dur);
 }
 
 export function toast(message, type = 'info') {
@@ -115,13 +120,15 @@ export function confirmModal(message, { okText = 'Evet', cancelText = 'Vazgeç',
         </div>
       </div>`;
     document.body.appendChild(back);
-    const close = (val) => { back.remove(); resolve(val); };
+    const onKey = (e) => { if (e.key === 'Escape') close(false); };
+    const close = (val) => { back.remove(); document.removeEventListener('keydown', onKey); resolve(val); };
     back.addEventListener('click', (e) => {
       if (e.target === back) close(false);
       const act = e.target.closest('[data-act]')?.dataset.act;
       if (act === 'ok') close(true);
       if (act === 'cancel') close(false);
     });
+    document.addEventListener('keydown', onKey);
   });
 }
 
@@ -132,13 +139,12 @@ export function openModal(html, { wide = false } = {}) {
   back.innerHTML = `<div class="modal ${wide ? 'modal-wide' : ''}" role="dialog" aria-modal="true">
       <button class="modal-close" aria-label="Kapat">&times;</button>${html}</div>`;
   document.body.appendChild(back);
-  const close = () => back.remove();
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  const close = () => { back.remove(); document.removeEventListener('keydown', onKey); };
   back.addEventListener('click', (e) => {
     if (e.target === back || e.target.closest('.modal-close')) close();
   });
-  document.addEventListener('keydown', function onKey(e) {
-    if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); }
-  });
+  document.addEventListener('keydown', onKey);
   return { el: back.querySelector('.modal'), close };
 }
 
@@ -290,6 +296,7 @@ function wireChrome() {
   document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
   document.getElementById('logout-btn')?.addEventListener('click', () => {
     clearSession();
+    clearCaches();
     toast('Çıkış yapıldı.');
     setTimeout(() => (location.href = '/index.html'), 500);
   });

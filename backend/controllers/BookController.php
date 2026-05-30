@@ -91,8 +91,9 @@ class BookController {
         Auth::requireAdmin();
         $model = new Book($this->db);
         if ($imageId) {
-            $model->deleteImage($id, $imageId);
-            Response::ok('Görsel kaldırıldı.');
+            $model->deleteImage($id, $imageId)
+                ? Response::ok('Görsel kaldırıldı.')
+                : Response::error('Görsel bulunamadı.', 404);
         }
         $model->deleteImages($id);
         Response::ok('Görseller silindi.');

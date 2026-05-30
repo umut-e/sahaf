@@ -60,12 +60,13 @@ export async function addToCart(book, qty = 1) {
     await refreshCounts();
   } else {
     const cart = localCart();
+    const max = Number(book.stock) || 99;
     const found = cart.find((i) => Number(i.book_id) === Number(book.id));
     if (found) {
-      found.quantity += qty;
+      found.quantity = Math.min(max, found.quantity + qty);
     } else {
       cart.push({
-        book_id: Number(book.id), quantity: qty, title: book.title, author: book.author,
+        book_id: Number(book.id), quantity: Math.min(max, qty), title: book.title, author: book.author,
         price: book.price, stock: book.stock, primary_image: book.primary_image,
       });
     }
@@ -75,6 +76,7 @@ export async function addToCart(book, qty = 1) {
 
 export async function setCartQty(item, qty) {
   qty = Math.max(1, qty);
+  if (item.stock) qty = Math.min(qty, Number(item.stock));
   if (isLoggedIn()) {
     await api('/cart/' + item.id, { method: 'PUT', body: { quantity: qty } });
     await refreshCounts();
@@ -97,6 +99,14 @@ export async function removeFromCart(item) {
 
 export function clearLocalCart() {
   setLocalCart([]);
+}
+
+/** Çıkışta önbellekleri temizler: favori id'leri, sepet sayacı ve misafir sepeti. */
+export function clearCaches() {
+  localStorage.removeItem(FAV_KEY);
+  localStorage.removeItem(CART_KEY);
+  localStorage.removeItem(CART_COUNT_KEY);
+  emitChange();
 }
 
 /* ---------- favori işlemleri ---------- */

@@ -73,8 +73,9 @@ function wireGrid(grid, getBooks, { onFavRemoved, onAdminChange } = {}) {
       if (!now && onFavRemoved) onFavRemoved(card);
     } else if (act === 'add') {
       e.stopPropagation();
-      await store.addToCart(book);
-      toast('Sepete eklendi.', 'success');
+      if (Number(book.stock) <= 0) { toast('Bu kitap tükendi.', 'error'); return; }
+      try { await store.addToCart(book); toast('Sepete eklendi.', 'success'); }
+      catch (err) { toast(err.message, 'error'); }
     } else if (act === 'edit') {
       e.stopPropagation();
       openBookForm(book, onAdminChange);
@@ -240,8 +241,10 @@ async function initBook() {
     document.getElementById('qty-val').textContent = qty;
   });
   document.getElementById('add-cart')?.addEventListener('click', async () => {
-    await store.addToCart(book, qty);
-    toast(qty > 1 ? `${qty} adet sepete eklendi.` : 'Sepete eklendi.', 'success');
+    try {
+      await store.addToCart(book, qty);
+      toast(qty > 1 ? `${qty} adet sepete eklendi.` : 'Sepete eklendi.', 'success');
+    } catch (err) { toast(err.message, 'error'); }
   });
   document.getElementById('fav-btn')?.addEventListener('click', async (e) => {
     if (!isLoggedIn()) { toast('Favorilere eklemek için giriş yapmalısınız.', 'error'); return; }

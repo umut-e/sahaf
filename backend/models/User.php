@@ -24,17 +24,6 @@ class User {
         ]);
     }
 
-    public function lastId(): int {
-        return (int) $this->db->lastInsertId();
-    }
-
-    /** Giriş için tam satır (şifre dahil) döner. */
-    public function findByEmail(string $email) {
-        $stmt = $this->db->prepare("SELECT * FROM users WHERE email = :e LIMIT 1");
-        $stmt->execute([':e' => $email]);
-        return $stmt->fetch();
-    }
-
     /** E-posta VEYA telefonla kullanıcıyı bulur (giriş/kayıt için). */
     public function findByLogin(string $identifier) {
         $norm = preg_replace('/[\s\-()]/', '', $identifier);
