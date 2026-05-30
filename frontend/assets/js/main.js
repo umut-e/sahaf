@@ -66,6 +66,7 @@ function wireGrid(grid, getBooks, { onFavRemoved, onAdminChange } = {}) {
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (act === 'fav') {
       e.stopPropagation();
+      if (!isLoggedIn()) { toast('Favorilere eklemek için giriş yapmalısınız.', 'error'); return; }
       const now = await store.toggleFavorite(book);
       card.querySelector('.fav-toggle').classList.toggle('on', now);
       toast(now ? 'Favorilere eklendi.' : 'Favorilerden çıkarıldı.', 'success');
@@ -226,6 +227,7 @@ async function initBook() {
   }
   document.getElementById('add-cart')?.addEventListener('click', async () => { await store.addToCart(book); toast('Sepete eklendi.', 'success'); });
   document.getElementById('fav-btn')?.addEventListener('click', async (e) => {
+    if (!isLoggedIn()) { toast('Favorilere eklemek için giriş yapmalısınız.', 'error'); return; }
     const now = await store.toggleFavorite(book);
     e.target.textContent = now ? '♥ Favoride' : '♡ Favorile';
     toast(now ? 'Favorilere eklendi.' : 'Favorilerden çıkarıldı.', 'success');
