@@ -371,6 +371,24 @@ table.data tr:last-child td { border-bottom: none; }
 .admin-nav a { padding: .5rem 1rem; border-radius: var(--radius-pill); background: var(--surface); border: 1px solid var(--border); font-size: .9rem; }
 .admin-nav a.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
+/* ---------------- edebiyattan sözler (JSON) ---------------- */
+.quotes-section { margin-top: 3.5rem; }
+.section-title { font-size: 1.6rem; text-align: center; margin-bottom: 1.5rem; }
+.quotes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+.quote-card {
+  position: relative; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 2.5rem 1.5rem 1.25rem; box-shadow: var(--shadow-sm);
+  transition: transform .2s, box-shadow .2s;
+}
+.quote-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.quote-card::before {
+  content: '“'; position: absolute; top: -.2rem; left: 1rem;
+  font-family: var(--serif); font-size: 4rem; line-height: 1; color: var(--accent); opacity: .5;
+}
+.quote-card blockquote { margin: 0 0 .75rem; font-family: var(--serif); font-size: 1.05rem; font-style: italic; line-height: 1.5; }
+.quote-card figcaption { color: var(--muted); font-size: .9rem; text-align: right; }
+.quote-work { font-style: italic; }
+
 /* ---------------- pagination ---------------- */
 .pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 2rem; }
 .pagination button { padding: .5rem 1rem; }

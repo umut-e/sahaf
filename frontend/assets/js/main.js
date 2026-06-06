@@ -161,6 +161,26 @@ async function initHome() {
   });
 
   load();
+  loadQuotes();
+}
+
+/* Statik JSON dosyasından edebî sözleri okuyup kart olarak listeler. */
+async function loadQuotes() {
+  const section = document.getElementById('quotes-section');
+  const grid = document.getElementById('quotes-grid');
+  if (!grid) return;
+  let quotes;
+  try {
+    const res = await fetch('/data/sozler.json');
+    quotes = await res.json();
+  } catch { return; }
+  if (!Array.isArray(quotes) || !quotes.length) return;
+  grid.innerHTML = quotes.map((q) => `
+    <figure class="quote-card">
+      <blockquote>${esc(q.quote)}</blockquote>
+      <figcaption>— ${esc(q.author)}${q.work ? `, <span class="quote-work">${esc(q.work)}</span>` : ''}</figcaption>
+    </figure>`).join('');
+  section.hidden = false;
 }
 
 function renderPager(el, page, pages, onGo) {
